@@ -1,5 +1,5 @@
 /**
- * @file Defines.hpp
+ * @file defines.h
  * @author TF
  * @copyright Copyright (c) 2023 TF
  */
@@ -49,11 +49,7 @@ static_assert(sizeof(bool32) == 4, "bool32 is not 4 bytes");
 	#error "Debug break not supported on this platform"
 #endif
 
-#ifdef __GNUC__
-	#define VA_OPTIONAL_EXPANSION(...) __VA_OPT__(, )##__VA_ARGS__
-#else
-	#define VA_OPTIONAL_EXPANSION(...) , ##__VA_ARGS__
-#endif
+#define VA_OPTIONAL_EXPANSION(...) __VA_OPT__(, )##__VA_ARGS__
 
 #define ANSI_COLOR_BLACK      "\x1b[30m"
 #define ANSI_COLOR_RED        "\x1b[31m"
@@ -79,15 +75,35 @@ static_assert(sizeof(bool32) == 4, "bool32 is not 4 bytes");
 #define MB(x) (KB(x) * 1024)
 #define GB(x) (MB(x) * 1024)
 
-#define TRACE(fmt, ...) fprintf(stdout, fmt##__VA_ARGS__)
-#define ERROR(fmt, ...) fprintf(stderr, ANSI_COLOR_RED fmt ANSI_COLOR_RESET##__VA_ARGS__)
+#define TRACE(fmt, ...) fprintf(stdout, fmt __VA_OPT__(, )##__VA_ARGS__)
+#define ERROR(fmt, ...) fprintf(stderr, ANSI_COLOR_RED fmt ANSI_COLOR_RESET __VA_OPT__(, )##__VA_ARGS__)
 
-#define ASSERT(condition, fmt, ...)  \
-	do                               \
-	{                                \
-		if (!(condition))            \
-		{                            \
-			ERROR(fmt##__VA_ARGS__); \
-			DEBUG_BREAK();           \
-		}                            \
+#ifdef DEBUG
+
+	#define ASSERT(condition, fmt, ...)                 \
+		do                                              \
+		{                                               \
+			if (!(condition))                           \
+			{                                           \
+				ERROR(fmt __VA_OPT__(, )##__VA_ARGS__); \
+				DEBUG_BREAK();                          \
+				exit(-1);                               \
+			}                                           \
+		} while (0)
+
+#else
+
+	#define ASSERT(condition, fmt, ...)
+
+#endif // !DEBUG
+
+#define VERIFY(condition, fmt, ...)                 \
+	do                                              \
+	{                                               \
+		if (!(condition))                           \
+		{                                           \
+			ERROR(fmt __VA_OPT__(, )##__VA_ARGS__); \
+			DEBUG_BREAK();                          \
+			exit(-1);                               \
+		}                                           \
 	} while (0)

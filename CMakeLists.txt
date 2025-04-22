@@ -3,13 +3,15 @@ cmake_minimum_required(VERSION 3.30 FATAL_ERROR)
 project(Wandelt VERSION 0.0.1 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF) 
 
 file(GLOB_RECURSE HEADERS "src/*.h")
 file(GLOB_RECURSE SOURCES "src/*.c")
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -WX /EHsc)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall /EHsc)
 target_precompile_headers(${PROJECT_NAME} PRIVATE "src/pch.h")
 
 if(MSVC)
@@ -60,3 +62,9 @@ if(WIN32)
 endif()
 
 include(CPack)
+
+if(MSVC)
+    # Tell CMake that MSVC supports C23
+    set(CMAKE_C23_STANDARD_COMPILE_OPTION "/std:clatest")
+    set(CMAKE_C23_EXTENSION_COMPILE_OPTION "/std:clatest")
+endif()

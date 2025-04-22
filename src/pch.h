@@ -7,3 +7,6 @@
 #include <string.h>
 
 #include "utils/defines.h"
+
+#include "containers/vector.h"
+#include "utils/memory.h"
