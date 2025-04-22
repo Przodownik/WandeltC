@@ -1,0 +1,4 @@
+fn int32 main()
+{
+    return 12;
+}
