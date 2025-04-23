@@ -4,14 +4,14 @@ project(Wandelt VERSION 0.0.1 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF) 
+set(CMAKE_C_EXTENSIONS OFF)
 
 file(GLOB_RECURSE HEADERS "src/*.h")
 file(GLOB_RECURSE SOURCES "src/*.c")
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall /EHsc)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall /EHsc /Qspectre-)
 target_precompile_headers(${PROJECT_NAME} PRIVATE "src/pch.h")
 
 if(MSVC)
@@ -21,8 +21,9 @@ if(MSVC)
     # /EHa: Enables asynchronous structured exception handling.
     # /EHsc: Enables standard C++ exception handling.
     # /utf-8: Sets the source and execution character set to UTF-8.
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Od /Zi /utf-8")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /O2 /utf-8")
+    # /wd5045: Suppresses warnings about spectre mitigation.
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Od /Zi /utf-8 /wd5045")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /O2 /utf-8 /wd5045")
 endif()
 
 if(WIN32)

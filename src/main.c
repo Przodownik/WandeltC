@@ -11,13 +11,30 @@ int main(void)
 	arena_allocator_print_stats(&allocator);
 	arena_allocator_destroy(&allocator);
 
-	int* intArray = vector_create(10, sizeof(int));
+	int* intArray = vector_create(1, sizeof(int));
 
 	int x    = 12;
 	intArray = vector_push(intArray, &x);
+
+	TRACE("Capacity %llu \n", vector_get_capacity(intArray));
+
+	intArray = vector_push(intArray, &x);
+	TRACE("Capacity %llu \n", vector_get_capacity(intArray));
+
+	intArray = vector_push(intArray, &x);
+	intArray = vector_push(intArray, &x);
 	intArray = vector_push(intArray, &x);
 
-	TRACE("%llu", vector_length(intArray));
+	TRACE("Capacity %llu \n", vector_get_capacity(intArray));
+
+	TRACE("%llu \n", vector_get_length(intArray));
+
+	for (uint64 i = 0; i < vector_get_length(intArray); i++)
+	{
+		int* value = intArray + i;
+
+		TRACE("Value %d\n", *value);
+	}
 
 	vector_destroy(intArray);
 	//__typeof(intArray) x = 12;

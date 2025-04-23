@@ -78,24 +78,16 @@ static_assert(sizeof(bool32) == 4, "bool32 is not 4 bytes");
 #define TRACE(fmt, ...) fprintf(stdout, fmt __VA_OPT__(, )##__VA_ARGS__)
 #define ERROR(fmt, ...) fprintf(stderr, ANSI_COLOR_RED fmt ANSI_COLOR_RESET __VA_OPT__(, )##__VA_ARGS__)
 
-#ifdef DEBUG
-
-	#define ASSERT(condition, fmt, ...)                 \
-		do                                              \
-		{                                               \
-			if (!(condition))                           \
-			{                                           \
-				ERROR(fmt __VA_OPT__(, )##__VA_ARGS__); \
-				DEBUG_BREAK();                          \
-				exit(-1);                               \
-			}                                           \
-		} while (0)
-
-#else
-
-	#define ASSERT(condition, fmt, ...)
-
-#endif // !DEBUG
+#define ASSERT(condition, fmt, ...)                 \
+	do                                              \
+	{                                               \
+		if (!(condition))                           \
+		{                                           \
+			ERROR(fmt __VA_OPT__(, )##__VA_ARGS__); \
+			DEBUG_BREAK();                          \
+			exit(-1);                               \
+		}                                           \
+	} while (0)
 
 #define VERIFY(condition, fmt, ...)                 \
 	do                                              \
