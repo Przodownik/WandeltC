@@ -23,6 +23,7 @@ if(MSVC)
 endif()
 
 add_subdirectory(src)
+add_subdirectory(tests)
 
 add_executable(${PROJECT_NAME} main.c)
 
@@ -31,18 +32,23 @@ target_link_libraries(${PROJECT_NAME} PRIVATE WandeltCore)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall /EHsc /Qspectre-)
 target_compile_options(WandeltCore PRIVATE -Wall /EHsc /Qspectre-)
+target_compile_options(WandeltTests PRIVATE -Wall /EHsc /Qspectre-)
 
 target_precompile_headers(${PROJECT_NAME} REUSE_FROM WandeltCore)
+target_precompile_headers(WandeltTests REUSE_FROM WandeltCore)
 
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WDT_PLATFORM_WINDOWS)
     target_compile_definitions(WandeltCore PRIVATE WDT_PLATFORM_WINDOWS)
+    target_compile_definitions(WandeltTests PRIVATE WDT_PLATFORM_WINDOWS)
 elseif(UNIX)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WDT_PLATFORM_LINUX)
     target_compile_definitions(WandeltCore PRIVATE WDT_PLATFORM_LINUX)
+    target_compile_definitions(WandeltTests PRIVATE WDT_PLATFORM_WINDOWS)
 elseif(APPLE)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WDT_PLATFORM_MACOS)
     target_compile_definitions(WandeltCore PRIVATE WDT_PLATFORM_MACOS)
+    target_compile_definitions(WandeltTests PRIVATE WDT_PLATFORM_WINDOWS)
 endif()
 
 install(TARGETS ${PROJECT_NAME}

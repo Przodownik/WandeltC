@@ -1,4 +1,14 @@
-int32 main(void)
+#include "test_manager.h"
+
+#include "vector_tests.h"
+
+void main(void)
 {
-	return 1;
+	test_manager_init();
+
+	vector_register_tests();
+
+	test_manager_run_tests();
+
+	test_manager_shutdown();
 }
