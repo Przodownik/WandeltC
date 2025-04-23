@@ -6,15 +6,11 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
-file(GLOB_RECURSE HEADERS "src/*.h")
-file(GLOB_RECURSE SOURCES "src/*.c")
-
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall /EHsc /Qspectre-)
-target_precompile_headers(${PROJECT_NAME} PRIVATE "src/pch.h")
-
 if(MSVC)
+    # Tell CMake that MSVC supports C23
+    set(CMAKE_C23_STANDARD_COMPILE_OPTION "/std:clatest")
+    set(CMAKE_C23_EXTENSION_COMPILE_OPTION "/std:clatest")
+
     # /Od: Disables optimizations for easier debugging.
     # /O2: Enables optimizations for maximum speed.
     # /Zi: Generates debugging information.
@@ -26,12 +22,27 @@ if(MSVC)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /O2 /utf-8 /wd5045")
 endif()
 
+add_subdirectory(src)
+
+add_executable(${PROJECT_NAME} main.c)
+
+target_include_directories(${PROJECT_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/src")
+target_link_libraries(${PROJECT_NAME} PRIVATE WandeltCore)
+
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall /EHsc /Qspectre-)
+target_compile_options(WandeltCore PRIVATE -Wall /EHsc /Qspectre-)
+
+target_precompile_headers(${PROJECT_NAME} REUSE_FROM WandeltCore)
+
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WDT_PLATFORM_WINDOWS)
+    target_compile_definitions(WandeltCore PRIVATE WDT_PLATFORM_WINDOWS)
 elseif(UNIX)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WDT_PLATFORM_LINUX)
+    target_compile_definitions(WandeltCore PRIVATE WDT_PLATFORM_LINUX)
 elseif(APPLE)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WDT_PLATFORM_MACOS)
+    target_compile_definitions(WandeltCore PRIVATE WDT_PLATFORM_MACOS)
 endif()
 
 install(TARGETS ${PROJECT_NAME}
@@ -63,9 +74,3 @@ if(WIN32)
 endif()
 
 include(CPack)
-
-if(MSVC)
-    # Tell CMake that MSVC supports C23
-    set(CMAKE_C23_STANDARD_COMPILE_OPTION "/std:clatest")
-    set(CMAKE_C23_EXTENSION_COMPILE_OPTION "/std:clatest")
-endif()

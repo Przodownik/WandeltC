@@ -1,4 +1,4 @@
-int main(void)
+int32 main(void)
 {
 	// FILE* config = fopen(".wdt.conf", "r");
 	// ASSERT(config != nullptr, "Could not find or open the .wdt.conf file. It is necessary to compile.");
