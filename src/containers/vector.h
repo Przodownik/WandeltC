@@ -46,13 +46,25 @@ void vector_destroy(void* vector);
 void* vector_resize(void* vector);
 
 /**
- * @brief Push a new value onto the vector.
+ * @brief Push a new value onto the vector. (Internal use, use only via macro vector_push)
  *
  * @param vector A pointer to the vector to which the value will be pushed.
  * @param value A pointer to the value to be pushed onto the vector.
  * @return A pointer to the updated vector.
  */
-void* vector_push(void* vector, const void* value);
+void* _vector_push(void* vector, const void* value);
+
+/**
+ * @brief Push a new value onto the vector.
+ *
+ * @param vector A pointer to the vector to which the value will be pushed.
+ * @param value A pointer to the value to be pushed onto the vector.
+ */
+#define vector_push(vector, value)                                            \
+	{                                                                         \
+		typeof(value) __temp_value__ = value;                                 \
+		vector                       = _vector_push(vector, &__temp_value__); \
+	}
 
 /**
  * @brief Get the capacity of the vector. (number of elements it can hold)

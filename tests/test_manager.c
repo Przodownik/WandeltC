@@ -21,7 +21,7 @@ void test_manager_register_test(PFN_test fn, const char* desc)
 	new_entry.func = fn;
 	new_entry.desc = desc;
 
-	tests = vector_push(tests, &new_entry);
+	vector_push(tests, new_entry);
 }
 
 void test_manager_run_tests(void)

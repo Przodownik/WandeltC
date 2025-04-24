@@ -6,6 +6,8 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # Export compile commands for clangd
+
 if(MSVC)
     # Tell CMake that MSVC supports C23
     set(CMAKE_C23_STANDARD_COMPILE_OPTION "/std:clatest")

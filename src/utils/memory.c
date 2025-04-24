@@ -12,6 +12,8 @@ void arena_allocator_create(ArenaAllocator* allocator, const char* name, uint64 
 	allocator->size        = size;
 	allocator->used        = 0u;
 	allocator->allocations = 0u;
+
+	ASSERT(allocator->memory != nullptr, "Failed to allocate memory for allocator %s", name);
 }
 
 void arena_allocator_destroy(ArenaAllocator* allocator)

@@ -45,7 +45,7 @@ void* vector_resize(void* vector)
 	return new_vector;
 }
 
-void* vector_push(void* vector, const void* value)
+void* _vector_push(void* vector, const void* value)
 {
 	uint64 header_size   = sizeof(VectorHeader);
 	VectorHeader* header = (VectorHeader*)((uint8*)vector - header_size);

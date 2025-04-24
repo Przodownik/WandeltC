@@ -69,13 +69,13 @@ static test_result vector_string_tests(void)
 	const char* str1 = "Hello";
 	const char* str2 = "world!";
 
-	stringVector = vector_push(stringVector, str1);
-	stringVector = vector_push(stringVector, str2);
+	vector_push(stringVector, str1);
+	vector_push(stringVector, str2);
 
 	expect_should_be(2llu, vector_get_length(stringVector));
 
-	expect_to_be_true(strcmp(stringVector, "Hello") == 0);
-	expect_to_be_true(strcmp(stringVector + 1, "world!") == 0);
+	expect_to_be_true(strcmp(stringVector[0], "Hello") == 0);
+	expect_to_be_true(strcmp(stringVector[1], "world!") == 0);
 
 	return TEST_RESULT_PASS;
 }
@@ -107,16 +107,16 @@ static test_result vector_resize_tests(void)
 
 	int val = 1;
 
-	intVector = vector_push(intVector, &val);
-	intVector = vector_push(intVector, &val);
-	intVector = vector_push(intVector, &val);
+	vector_push(intVector, val);
+	vector_push(intVector, val);
+	vector_push(intVector, val);
 
 	expect_should_be(3llu, vector_get_length(intVector));
 	expect_should_be(4llu, vector_get_capacity(intVector));
 
-	intVector = vector_push(intVector, &val);
-	intVector = vector_push(intVector, &val);
-	intVector = vector_push(intVector, &val);
+	vector_push(intVector, val);
+	vector_push(intVector, val);
+	vector_push(intVector, val);
 
 	expect_should_be(6llu, vector_get_length(intVector));
 	expect_should_be(8llu, vector_get_capacity(intVector));
