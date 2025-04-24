@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "utils/defines.h"
+#include "utils/filesystem.h"
+#include "utils/memory.h"
 
 #include "containers/vector.h"
-#include "utils/memory.h"

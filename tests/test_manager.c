@@ -5,7 +5,7 @@
 typedef struct test_entry
 {
 	PFN_test func;
-	char* desc;
+	const char* desc;
 } test_entry;
 
 static test_entry* tests = nullptr;

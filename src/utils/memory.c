@@ -40,9 +40,9 @@ void* arena_allocator_allocate(ArenaAllocator* allocator, uint64 size)
 void arena_allocator_print_stats(ArenaAllocator* allocator)
 {
 	TRACE(ANSI_COLOR_YELLOW "Allocator: %s\n" ANSI_COLOR_RESET, allocator->name);
-	TRACE(ANSI_COLOR_YELLOW " Memory used / total (bytes): %llu b / %llu b\n" ANSI_COLOR_RESET, allocator->used,
+	TRACE(ANSI_COLOR_YELLOW "  Memory used / total (bytes): %llu b / %llu b\n" ANSI_COLOR_RESET, allocator->used,
 	      allocator->size);
-	TRACE(ANSI_COLOR_YELLOW " Memory used / total (kb): %llu kb / %llu kb\n" ANSI_COLOR_RESET, allocator->used / KB(1),
+	TRACE(ANSI_COLOR_YELLOW "  Memory used / total (kb): %llu kb / %llu kb\n" ANSI_COLOR_RESET, allocator->used / KB(1),
 	      allocator->size / KB(1));
-	TRACE(ANSI_COLOR_YELLOW " Allocations: %llu\n" ANSI_COLOR_RESET, allocator->allocations);
+	TRACE(ANSI_COLOR_YELLOW "  Allocations: %llu\n" ANSI_COLOR_RESET, allocator->allocations);
 }
