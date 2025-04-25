@@ -109,6 +109,7 @@ void _hash_map_set(const HashMap* map, const char* key, const void* value)
 	ASSERT(new_node->value != NULL, "Failed to allocate memory for new hash node value!");
 	memcpy(new_node->value, value, map->stride);
 
+	new_node->next       = map->buckets[offset];
 	map->buckets[offset] = new_node;
 }
 
