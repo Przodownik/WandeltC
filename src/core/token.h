@@ -13,6 +13,7 @@ typedef enum _TokenType
 	TOKEN_FUNCTION_KEYWORD = 0, // fn
 	TOKEN_RETURN_KEYWORD,       // return
 	TOKEN_INT32_KEYWORD,        // int32
+	TOKEN_KEYWORD_COUNT,
 
 	// single character tokens
 	TOKEN_OPEN_PAREN,    // (
@@ -56,3 +57,5 @@ typedef enum _TokenType
 } TokenType;
 
 const char* token_type_to_string(TokenType type);
+
+const char* token_type_to_enum_stringified(TokenType type);

@@ -1,15 +1,15 @@
 #include "core/compiler.h"
 
-extern ArenaAllocator string_allocator;
+extern ArenaAllocator string_allocator; // from compiler_internal.h
 
 int32 main(void)
 {
 	FILE* config = fopen(".wdt.conf", "r");
 	ASSERT(config != nullptr, "Could not find or open the .wdt.conf file. It is necessary to compile.");
 
-	arena_allocator_create(&string_allocator, "STRING allocator", MB(1));
+	compiler_internal_initialize();
 
-	char** file_sources = vector_create(5, sizeof(char*));
+	File* file_sources = vector_create(5, sizeof(File));
 
 	char line[256];
 	bool in_project_files = false;
@@ -38,9 +38,8 @@ int32 main(void)
 				continue;
 			}
 
-			char* str = arena_allocator_allocate(&string_allocator, sizeof(char) * (length + 1));
-			strcpy_s(str, length + 1, line);
-			vector_push(file_sources, str);
+			File source_file = file_create(line);
+			vector_push(file_sources, source_file);
 		}
 	}
 
@@ -51,17 +50,11 @@ int32 main(void)
 
 	compiler.build_options.file_sources = file_sources;
 
-
-
-	/*for (uint64 i = 0; i < vector_get_length(compiler.build_options.file_sources); i++)
-	{
-		TRACE("%s\n", compiler.build_options.file_sources[i]);
-	}*/
-
-	arena_allocator_print_stats(&string_allocator);
-	arena_allocator_destroy(&string_allocator);
+	compiler_compile(&compiler);
 
 	vector_destroy(file_sources);
+
+	compiler_internal_shutdown();
 
 	return 0;
 }

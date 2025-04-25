@@ -1,7 +1,7 @@
 #include "test_manager.h"
 
-#include "hash_map_tests.h"
-#include "vector_tests.h"
+#include "containers/hash_map_tests.h"
+#include "containers/vector_tests.h"
 
 void main(void)
 {

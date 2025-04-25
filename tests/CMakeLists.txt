@@ -9,3 +9,5 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 target_include_directories(WandeltTests PRIVATE "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(${PROJECT_NAME} PRIVATE WandeltCore)
+
+target_include_directories(WandeltTests PRIVATE "${CMAKE_SOURCE_DIR}/tests")

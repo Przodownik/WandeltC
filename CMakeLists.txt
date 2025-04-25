@@ -20,8 +20,10 @@ if(MSVC)
     # /EHsc: Enables standard C++ exception handling.
     # /utf-8: Sets the source and execution character set to UTF-8.
     # /wd5045: Suppresses warnings about spectre mitigation.
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Od /Zi /utf-8 /wd5045")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /O2 /utf-8 /wd5045")
+    # /wd4820: Suppresses warnings about padding in structures.
+    # /wd4599: Suppresses warnings about discrepancies in pch files.
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Od /Zi /utf-8 /wd5045 /wd4820 /wd4599")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /O2 /utf-8 /wd5045 /wd4820 /wd4599")
 endif()
 
 add_subdirectory(src)

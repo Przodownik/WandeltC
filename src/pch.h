@@ -9,5 +9,7 @@
 #include "utils/defines.h"
 #include "utils/filesystem.h"
 #include "utils/memory.h"
+#include "utils/string.h"
 
+#include "containers/hash_map.h"
 #include "containers/vector.h"
