@@ -9,17 +9,17 @@
  * @brief Test result enumeration.
  * This enum defines the possible results of a test.
  */
-typedef enum
+typedef enum _TestResult
 {
 	TEST_RESULT_PASS, // Test passed successfully
 	TEST_RESULT_SKIP, // Test was skipped
 	TEST_RESULT_FAIL, // Test failed
-} test_result;
+} TestResult;
 
 /**
  * @brief Function pointer type for test functions to be registered with the test manager.
  */
-typedef test_result (*PFN_test)(void);
+typedef TestResult (*PFN_test)(void);
 
 /**
  * @brief Initializes the test manager.

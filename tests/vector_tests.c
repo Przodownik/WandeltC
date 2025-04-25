@@ -3,7 +3,7 @@
 #include "expect.h"
 #include "test_manager.h"
 
-static test_result vector_simple_type_tests(void)
+static TestResult vector_simple_type_tests(void)
 {
 	int* intVector = vector_create(5, sizeof(int));
 
@@ -33,7 +33,7 @@ static test_result vector_simple_type_tests(void)
 	return TEST_RESULT_PASS;
 }
 
-static test_result vector_struct_tests(void)
+static TestResult vector_struct_tests(void)
 {
 	typedef struct
 	{
@@ -62,7 +62,7 @@ static test_result vector_struct_tests(void)
 	return TEST_RESULT_PASS;
 }
 
-static test_result vector_string_tests(void)
+static TestResult vector_string_tests(void)
 {
 	char** stringVector = vector_create(5, sizeof(char*));
 
@@ -80,7 +80,7 @@ static test_result vector_string_tests(void)
 	return TEST_RESULT_PASS;
 }
 
-static test_result vector_pointer_tests(void)
+static TestResult vector_pointer_tests(void)
 {
 	int** intVector = vector_create(5, sizeof(int*));
 
@@ -101,7 +101,7 @@ static test_result vector_pointer_tests(void)
 	return TEST_RESULT_PASS;
 }
 
-static test_result vector_resize_tests(void)
+static TestResult vector_resize_tests(void)
 {
 	int* intVector = vector_create(2, sizeof(int));
 

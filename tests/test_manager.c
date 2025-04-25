@@ -2,22 +2,22 @@
 
 #include <containers/vector.h>
 
-typedef struct test_entry
+typedef struct _TestEntry
 {
 	PFN_test func;
 	const char* desc;
-} test_entry;
+} TestEntry;
 
-static test_entry* tests = nullptr;
+static TestEntry* tests = nullptr;
 
 void test_manager_init(void)
 {
-	tests = vector_create(10, sizeof(test_entry));
+	tests = vector_create(10, sizeof(TestEntry));
 }
 
 void test_manager_register_test(PFN_test fn, const char* desc)
 {
-	test_entry new_entry;
+	TestEntry new_entry;
 	new_entry.func = fn;
 	new_entry.desc = desc;
 
@@ -32,7 +32,7 @@ void test_manager_run_tests(void)
 
 	for (uint64 i = 0; i < vector_get_length(tests); ++i)
 	{
-		test_result result = tests[i].func();
+		TestResult result = tests[i].func();
 
 		switch (result)
 		{

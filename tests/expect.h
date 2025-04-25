@@ -14,11 +14,11 @@
  * @param expected The expected value.
  * @param actual The actual value.
  */
-#define expect_should_be(expected, actual)                                                             \
-	if (actual != expected)                                                                            \
-	{                                                                                                  \
-		ERROR("--> Expected %lld, but got: %lld. File: %s:%d.", expected, actual, __FILE__, __LINE__); \
-		return TEST_RESULT_FAIL;                                                                       \
+#define expect_should_be(expected, actual)                                                               \
+	if (actual != expected)                                                                              \
+	{                                                                                                    \
+		ERROR("--> Expected %lld, but got: %lld. File: %s:%d.\n", expected, actual, __FILE__, __LINE__); \
+		return TEST_RESULT_FAIL;                                                                         \
 	}
 
 /**
@@ -28,11 +28,11 @@
  * @param expected The expected value.
  * @param actual The actual value.
  */
-#define expect_should_not_be(expected, actual)                                                                  \
-	if (actual == expected)                                                                                     \
-	{                                                                                                           \
-		ERROR("--> Expected %d != %d, but they are equal. File: %s:%d.", expected, actual, __FILE__, __LINE__); \
-		return TEST_RESULT_FAIL;                                                                                \
+#define expect_should_not_be(expected, actual)                                                                    \
+	if (actual == expected)                                                                                       \
+	{                                                                                                             \
+		ERROR("--> Expected %d != %d, but they are equal. File: %s:%d.\n", expected, actual, __FILE__, __LINE__); \
+		return TEST_RESULT_FAIL;                                                                                  \
 	}
 
 /**
@@ -42,11 +42,11 @@
  * @param expected The expected value.
  * @param actual The actual value.
  */
-#define expect_to_be_true(actual)                                                     \
-	if (actual != true)                                                               \
-	{                                                                                 \
-		ERROR("--> Expected true, but got: false. File: %s:%d.", __FILE__, __LINE__); \
-		return TEST_RESULT_FAIL;                                                      \
+#define expect_to_be_true(actual)                                                       \
+	if (actual != true)                                                                 \
+	{                                                                                   \
+		ERROR("--> Expected true, but got: false. File: %s:%d.\n", __FILE__, __LINE__); \
+		return TEST_RESULT_FAIL;                                                        \
 	}
 
 /**
@@ -56,9 +56,9 @@
  * @param expected The expected value.
  * @param actual The actual value.
  */
-#define expect_to_be_false(actual)                                                    \
-	if (actual != false)                                                              \
-	{                                                                                 \
-		ERROR("--> Expected false, but got: true. File: %s:%d.", __FILE__, __LINE__); \
-		return TEST_RESULT_FAIL;                                                      \
+#define expect_to_be_false(actual)                                                      \
+	if (actual != false)                                                                \
+	{                                                                                   \
+		ERROR("--> Expected false, but got: true. File: %s:%d.\n", __FILE__, __LINE__); \
+		return TEST_RESULT_FAIL;                                                        \
 	}
