@@ -71,6 +71,27 @@ static TestResult hash_map_string_tests(void)
 	return TEST_RESULT_PASS;
 }
 
+static TestResult hash_map_cstring_view_tests(void)
+{
+	HashMap map = hash_map_create(sizeof(CStringView), 10);
+
+	CStringView str1 = {"Hello", 5};
+	CStringView str2 = {"world!", 6};
+
+	hash_map_set(&map, "key1", str1);
+	hash_map_set(&map, "key2", str2);
+
+	const CStringView* out1 = hash_map_get_value(&map, "key1");
+	const CStringView* out2 = hash_map_get_value(&map, "key2");
+
+	expect_to_be_true(cstring_view_equals(out1, &str1));
+	expect_to_be_true(cstring_view_equals(out2, &str2));
+
+	hash_map_destroy(&map);
+
+	return TEST_RESULT_PASS;
+}
+
 static TestResult hash_map_pointer_tests(void)
 {
 	int64 i1 = 12;
@@ -92,5 +113,6 @@ void hash_map_register_tests(void)
 	test_manager_register_test(hash_map_simple_type_tests, "Basic hash map test using simple types");
 	test_manager_register_test(hash_map_struct_tests, "Basic hash map test using structs");
 	test_manager_register_test(hash_map_string_tests, "Basic hash map test using strings");
+	test_manager_register_test(hash_map_cstring_view_tests, "Basic hash map test using CStringView");
 	test_manager_register_test(hash_map_pointer_tests, "Basic hash map test using pointers");
 }

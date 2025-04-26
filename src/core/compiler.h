@@ -19,6 +19,8 @@ typedef struct _CompilerBuildOptions
 	const char* project_name;
 	DeliverableType deliverable_type;
 	File* file_sources;
+	bool lexer_debug;
+	bool parsed_debug;
 } CompilerBuildOptions;
 
 typedef struct _Compiler

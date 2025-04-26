@@ -73,6 +73,15 @@ void _hash_map_set(const HashMap* map, const char* key, const void* value);
 HashNode* hash_map_get(const HashMap* map, const char* key);
 
 /**
+ * @brief Get a hash node from the hash map for a given key that is a CStringView.
+ *
+ * @param map The hash map to get the value from
+ * @param key The key for the value to be retrieved
+ * @return HashNode* A pointer to the hash node containing the value
+ */
+HashNode* hash_map_get_by_view(const HashMap* map, const CStringView* key);
+
+/**
  * @brief Get the value from the hash map for a given key.
  *
  * @param map The hash map to get the value from
@@ -80,3 +89,12 @@ HashNode* hash_map_get(const HashMap* map, const char* key);
  * @return void* A pointer to the value associated with the key
  */
 void* hash_map_get_value(const HashMap* map, const char* key);
+
+/**
+ * @brief Get the value from the hash map for a given key that is a CStringView.
+ *
+ * @param map The hash map to get the value from
+ * @param key The key for the value to be retrieved
+ * @return void* A pointer to the value associated with the key
+ */
+void* hash_map_get_value_by_view(const HashMap* map, const CStringView* key);

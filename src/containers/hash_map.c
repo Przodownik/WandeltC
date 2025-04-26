@@ -64,11 +64,11 @@ void hash_map_destroy(HashMap* map)
 
 static const uint64 prime = 1099511628211ULL; // FNV prime
 
-static uint64 hashed_offset(const char* fragment, uint64 count)
+static uint64 hashed_offset(const char* fragment, uint64 count, uint64 length)
 {
 	uint64 hash = 14695981039346656037ULL;
 
-	for (uint64 i = 0; i < strlen(fragment); i++)
+	for (uint64 i = 0; i < length; i++)
 	{
 		hash ^= (uint64)fragment[i];
 		hash *= prime;
@@ -84,7 +84,7 @@ void _hash_map_set(const HashMap* map, const char* key, const void* value)
 	ASSERT(value != nullptr, "Value is null!");
 	ASSERT(strlen(key) > 0, "Key is empty!");
 
-	const uint64 offset = hashed_offset(key, map->capacity);
+	const uint64 offset = hashed_offset(key, map->capacity, strlen(key));
 	HashNode* current   = map->buckets[offset];
 
 	while (current != nullptr)
@@ -113,18 +113,18 @@ void _hash_map_set(const HashMap* map, const char* key, const void* value)
 	map->buckets[offset] = new_node;
 }
 
-HashNode* hash_map_get(const HashMap* map, const char* name)
+HashNode* hash_map_get(const HashMap* map, const char* key)
 {
 	ASSERT(map != nullptr, "Hash map is null!");
-	ASSERT(name != nullptr, "Name is null!");
-	ASSERT(strlen(name) > 0, "Name is empty!");
+	ASSERT(key != nullptr, "Key is null!");
+	ASSERT(strlen(key) > 0, "Key is empty!");
 
-	const uint64 offset = hashed_offset(name, map->capacity);
+	const uint64 offset = hashed_offset(key, map->capacity, strlen(key));
 	HashNode* current   = map->buckets[offset];
 
 	while (current != nullptr)
 	{
-		if (strcmp(current->key, name) == 0)
+		if (strcmp(current->key, key) == 0)
 			return current;
 
 		current = current->next;
@@ -133,9 +133,38 @@ HashNode* hash_map_get(const HashMap* map, const char* name)
 	return nullptr;
 }
 
-void* hash_map_get_value(const HashMap* map, const char* name)
+HashNode* hash_map_get_by_view(const HashMap* map, const CStringView* key)
 {
-	HashNode* node = hash_map_get(map, name);
+	ASSERT(map != nullptr, "Hash map is null!");
+	ASSERT(key != nullptr, "Key is null!");
+	ASSERT(key->length > 0, "Key is empty!");
+
+	const uint64 offset = hashed_offset(key->start, map->capacity, key->length);
+	HashNode* current   = map->buckets[offset];
+
+	while (current != nullptr)
+	{
+		if (cstring_view_equals_cstr(key, current->key))
+			return current;
+
+		current = current->next;
+	}
+
+	return nullptr;
+}
+
+void* hash_map_get_value(const HashMap* map, const char* key)
+{
+	HashNode* node = hash_map_get(map, key);
+	if (node == nullptr)
+		return nullptr;
+
+	return node->value;
+}
+
+void* hash_map_get_value_by_view(const HashMap* map, const CStringView* key)
+{
+	HashNode* node = hash_map_get_by_view(map, key);
 	if (node == nullptr)
 		return nullptr;
 

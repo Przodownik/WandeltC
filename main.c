@@ -49,6 +49,8 @@ int32 main(void)
 	compiler_create(&compiler);
 
 	compiler.build_options.file_sources = file_sources;
+	compiler.build_options.lexer_debug  = true;
+	compiler.build_options.parsed_debug = true;
 
 	compiler_compile(&compiler);
 
