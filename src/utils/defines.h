@@ -55,6 +55,7 @@ static_assert(sizeof(bool32) == 4, "bool32 is not 4 bytes");
 #define ANSI_COLOR_RED        "\x1b[31m"
 #define ANSI_COLOR_GREEN      "\x1b[32m"
 #define ANSI_COLOR_YELLOW     "\x1b[33m"
+#define ANSI_COLOR_ORANGE     "\033[38;5;208m"
 #define ANSI_COLOR_BLUE       "\x1b[34m"
 #define ANSI_COLOR_MAGENTA    "\x1b[35m"
 #define ANSI_COLOR_CYAN       "\x1b[36m"
