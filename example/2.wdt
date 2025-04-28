@@ -1,4 +1,12 @@
-fn int32 main()
+private fn int32 fibonacci(int32 n)
 {
-    return 12 + 12 * 12;
+    if (n <= 1)
+        return n;
+
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+public fn int32 main()
+{
+    return fibonacci(4);
 }

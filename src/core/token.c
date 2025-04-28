@@ -10,6 +10,10 @@ const char* token_type_to_string(TokenType type)
 		return "return";
 	case TOKEN_INT32_KEYWORD:
 		return "int32";
+	case TOKEN_PUBLIC_KEYWORD:
+		return "public";
+	case TOKEN_PRIVATE_KEYWORD:
+		return "private";
 	case TOKEN_OPEN_PAREN:
 		return "(";
 	case TOKEN_CLOSE_PAREN:
@@ -95,6 +99,10 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_RETURN_KEYWORD";
 	case TOKEN_INT32_KEYWORD:
 		return "TOKEN_INT32_KEYWORD";
+	case TOKEN_PUBLIC_KEYWORD:
+		return "TOKEN_PUBLIC_KEYWORD";
+	case TOKEN_PRIVATE_KEYWORD:
+		return "TOKEN_PRIVATE_KEYWORD";
 	case TOKEN_OPEN_PAREN:
 		return "TOKEN_OPEN_PAREN";
 	case TOKEN_CLOSE_PAREN:

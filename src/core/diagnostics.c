@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-#define ERROR_MESSAGE_LINES_SHOWN 4
+#define ERROR_MESSAGE_LINES_SHOWN 5
 
 uint32 count_digits(uint32 number)
 {
@@ -52,7 +52,7 @@ void diagnostics_print_at_location(SourceSpan* span, const char* message, Diagno
 
 			uint32 row_length = (uint32)(row_end - row_start);
 
-			TRACE(number_buffer, row_start_index + 1, row_length, row_start);
+			VTRACE(number_buffer, row_start_index + 1, row_length, row_start);
 
 			row_start_index++;
 		}
@@ -61,7 +61,7 @@ void diagnostics_print_at_location(SourceSpan* span, const char* message, Diagno
 	{
 		const char* row_end = strchr(row_start, '\n');
 		uint32 row_length   = (uint32)(row_end - row_start);
-		TRACE(number_buffer, 1, row_length, row_start);
+		VTRACE(number_buffer, 1, row_length, row_start);
 	}
 
 	// Skip the formatted number buffer line number
@@ -98,7 +98,7 @@ void diagnostics_print_at_location(SourceSpan* span, const char* message, Diagno
 
 		uint32 row_length = (uint32)(row_end - row_start);
 
-		TRACE(number_buffer, row_start_index + 1, row_length, row_start);
+		VTRACE(number_buffer, row_start_index + 1, row_length, row_start);
 
 		row_start_index++;
 	}

@@ -5,6 +5,8 @@ extern ArenaAllocator string_allocator; // from compiler_internal.h
 int32 main(void)
 {
 	FILE* config = fopen(".wdt.conf", "r");
+	// FILE* config = fopen("../../../example/.wdt.conf", "r");
+
 	ASSERT(config != nullptr, "Could not find or open the .wdt.conf file. It is necessary to compile.");
 
 	compiler_internal_initialize();
@@ -52,7 +54,8 @@ int32 main(void)
 	compiler.build_options.lexer_debug  = true;
 	compiler.build_options.parsed_debug = true;
 
-	compiler_compile(&compiler);
+	// compiler_lex(&compiler);
+	compiler_parse(&compiler);
 
 	vector_destroy(file_sources);
 

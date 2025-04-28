@@ -76,8 +76,27 @@ static_assert(sizeof(bool32) == 4, "bool32 is not 4 bytes");
 #define MB(x) (KB(x) * 1024)
 #define GB(x) (MB(x) * 1024)
 
-#define TRACE(fmt, ...) fprintf(stdout, fmt __VA_OPT__(, )##__VA_ARGS__)
-#define ERROR(fmt, ...) fprintf(stderr, ANSI_COLOR_RED fmt ANSI_COLOR_RESET __VA_OPT__(, )##__VA_ARGS__)
+static void __vtrace(const char* fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	vfprintf(stdout, fmt, args);
+	va_end(args);
+}
+
+static void __verror(const char* fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
+	va_end(args);
+}
+
+#define TRACE(fmt, ...)  fprintf(stdout, fmt __VA_OPT__(, )##__VA_ARGS__)
+#define VTRACE(fmt, ...) __vtrace(fmt, __VA_ARGS__)
+
+#define ERROR(fmt, ...)  fprintf(stderr, ANSI_COLOR_RED fmt ANSI_COLOR_RESET __VA_OPT__(, )##__VA_ARGS__)
+#define VERROR(fmt, ...) __verror(fmt, __VA_ARGS__)
 
 #define ASSERT(condition, fmt, ...)                 \
 	do                                              \

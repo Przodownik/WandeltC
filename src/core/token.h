@@ -7,12 +7,17 @@
 
 // When adding a new token type:
 // 1) Add it to the switch inside token_type_to_string method.
+// 2) Add it to the switch inside token_type_to_enum_stringified method.
+// 3) If the token is a keyword add it to the symbol table inside compiler_internal_initialize method in
+//	  compiler_internal.h
 typedef enum _TokenType
 {
 	// keywords
 	TOKEN_FUNCTION_KEYWORD = 0, // fn
 	TOKEN_RETURN_KEYWORD,       // return
 	TOKEN_INT32_KEYWORD,        // int32
+	TOKEN_PUBLIC_KEYWORD,       // public
+	TOKEN_PRIVATE_KEYWORD,      // private
 	TOKEN_KEYWORD_COUNT,
 
 	// single character tokens

@@ -22,8 +22,9 @@ if(MSVC)
     # /wd5045: Suppresses warnings about spectre mitigation.
     # /wd4820: Suppresses warnings about padding in structures.
     # /wd4599: Suppresses warnings about discrepancies in pch files.
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Od /Zi /utf-8 /wd5045 /wd4820 /wd4599")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /O2 /utf-8 /wd5045 /wd4820 /wd4599")
+    # /wd4061: Suppresses warnings about missing switch cases
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Od /Zi /utf-8 /wd5045 /wd4820 /wd4599 /wd4061")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /O2 /utf-8 /wd5045 /wd4820 /wd4599 /wd4061")
 endif()
 
 add_subdirectory(src)

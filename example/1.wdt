@@ -1,4 +1,20 @@
+/*
+    fn int32 fibonacci(int32 n)
+    {
+        if (n <= 1)
+            return n;
+
+        return fibonacci(n - 1) + fibonacci(n - 2);
+    }
+*/
+
 fn int32 main()
 {
-    return 12;
+    return 14;
+}
+
+
+fn int32 secondmain()
+{
+    return 14;
 }
