@@ -61,7 +61,7 @@ typedef struct _FunctionSignature
 typedef struct _FunctionDeclaration
 {
 	FunctionSignature signature;
-	// Ast* body;
+	Statement* body;
 } FunctionDeclaration;
 
 typedef struct _Declaration
@@ -77,19 +77,34 @@ typedef enum _StatementType
 {
 	STATEMENT_INVALID = 0,
 	STATEMENT_COMPOUND,
+	STATEMENT_DECLARATION,
+	STATEMENT_RETURN,
 } StatementType;
 
-typedef struct _CompountAst
+typedef struct _CompountStatement
 {
-	Statement** statements;
+	Statement* first;
 } CompountStatement;
+
+typedef struct _DeclarationStatement
+{
+	Declaration* declaration;
+} DeclarationStatement;
+
+typedef struct _ReturnStatement
+{
+	Expression* expression; // can be null for return;
+} ReturnStatement;
 
 typedef struct _Statement
 {
 	StatementType type;
+	Statement* next;
 
 	union {
 		CompountStatement compound;
+		DeclarationStatement declaration;
+		ReturnStatement return_;
 	};
 } Statement;
 
@@ -141,6 +156,8 @@ typedef struct _Context
 
 ArenaAllocator string_allocator;
 ArenaAllocator declaration_allocator;
+ArenaAllocator statement_allocator;
+ArenaAllocator expression_allocator;
 
 HashMap symbol_table;
 HashMap type_table;

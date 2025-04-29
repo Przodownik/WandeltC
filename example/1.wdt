@@ -13,8 +13,3 @@ fn int32 main()
     return 14;
 }
 
-
-fn int32 secondmain()
-{
-    return 14;
-}

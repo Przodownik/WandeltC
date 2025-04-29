@@ -216,8 +216,8 @@ bool _lexer_try_get_next_token(Lexer* lexer)
 
 	if (lexer_is_eof(lexer))
 	{
-		lexer->current_token.type = TOKEN_EOF;
-		lexer->previous_token     = lexer->current_token;
+		lexer_make_new_token(lexer, TOKEN_EOF, "EOF");
+		lexer->current_token.source_span.length = 1;
 
 		return false;
 	}

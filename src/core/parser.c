@@ -1,14 +1,21 @@
 #include "parser.h"
 
+#include "core/token.h"
 #include "diagnostics.h"
 
 extern ArenaAllocator declaration_allocator; // from compiler_internal.h
+extern ArenaAllocator statement_allocator;   // from compiler_internal.h
+extern ArenaAllocator expression_allocator;  // from compiler_internal.h
 extern HashMap type_table;                   // from compiler_internal.h
 
 #define YELLOW_HIGHLIGHT(text)   ANSI_COLOR_YELLOW text ANSI_COLOR_RED
 #define UNEXPECTED_TOKEN_MESSAGE "Unexpected token '" YELLOW_HIGHLIGHT("%s") "' found!"
+#define OK_OR_RET_FALSE(x) \
+	if (!x)                \
+	return false
 
 static Declaration invalid_declaration = {.kind = DECLARATION_INVALID};
+static Statement invalid_statement     = {.type = DECLARATION_INVALID};
 
 Parser parser_create(Context* context, Lexer* lexer)
 {
@@ -25,8 +32,8 @@ void parser_advance(Parser* parser)
 
 	Token token = parser->lexer->current_token;
 
-	TRACE("Consuming token:  <Token id=\"%i\" type=\"%s\", value=\"%s\" />\n", parser->lexer->token_count,
-	      token_type_to_enum_stringified(token.type), token.lexeme);
+	// TRACE("Consuming token:  <Token id=\"%i\" type=\"%s\", value=\"%s\" />\n", parser->lexer->token_count,
+	// token_type_to_enum_stringified(token.type), token.lexeme);
 
 	if (token.type == TOKEN_EOF)
 		return;
@@ -54,6 +61,18 @@ bool parser_advance_and_expect(Parser* parser, TokenType expected_type)
 	parser_advance(parser);
 
 	return parser_expect(parser, expected_type);
+}
+
+bool try_advance(Parser* parser, TokenType type)
+{
+	if (parser->lexer->current_token.type == type)
+	{
+		parser_advance(parser);
+
+		return true;
+	}
+
+	return false;
 }
 
 void recover_from_error(Parser* parser)
@@ -84,6 +103,7 @@ void parser_report_error(SourceSpan* location, const char* message, ...)
 	va_end(list);
 }
 
+// <identifier>
 bool parse_identifier(Parser* parser, const char** identifier)
 {
 	if (parser->lexer->current_token.type != TOKEN_IDENTIFIER)
@@ -101,6 +121,7 @@ bool parse_identifier(Parser* parser, const char** identifier)
 	return true;
 }
 
+// <type>
 bool parse_type(Parser* parser, Type* type)
 {
 	TypeKind* kind = (TypeKind*)hash_map_get_value(&type_table, parser->lexer->current_token.lexeme);
@@ -120,35 +141,108 @@ bool parse_type(Parser* parser, Type* type)
 	return true;
 }
 
+// for now empty (), TODO: (<type> <identifier>, ...)
 bool parse_parameters(Parser* parser, Declaration** parameters)
 {
-	if (!parser_expect(parser, TOKEN_OPEN_PAREN))
-		return false;
+	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_OPEN_PAREN));
 
 	parser_advance(parser); // consume (
 
-	if (!parser_expect(parser, TOKEN_CLOSE_PAREN))
-		return false;
+	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_CLOSE_PAREN));
 
 	parser_advance(parser); // consume )
 
 	return true;
 }
 
+// fn <type> <identifier>(<type> <identifier>, ...)
 bool parse_function_signature(Parser* parser, FunctionSignature* signature)
 {
 	parser_advance(parser); // consume fn
 
-	if (!parse_type(parser, &signature->return_type))
-		return false;
-
-	if (!parse_identifier(parser, &signature->name))
-		return false;
-
-	if (!parse_parameters(parser, signature->parameters))
-		return false;
+	OK_OR_RET_FALSE(parse_type(parser, &signature->return_type));
+	OK_OR_RET_FALSE(parse_identifier(parser, &signature->name));
+	OK_OR_RET_FALSE(parse_parameters(parser, signature->parameters));
 
 	return true;
+}
+
+Expression* parse_expression(Parser* parser)
+{
+	Expression* expression        = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind              = EXPRESSION_LITERAL;
+	expression->literal.int_value = 14;
+
+	parser_advance(parser); // consume expression
+
+	return expression;
+}
+
+Statement* parse_return_statement(Parser* parser)
+{
+	parser_advance(parser); // consume return
+
+	Statement* statement          = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
+	statement->type               = STATEMENT_RETURN;
+	statement->return_.expression = parse_expression(parser);
+
+	if (!parser_expect(parser, TOKEN_SEMICOLON))
+	{
+		parser_report_error(&parser->lexer->previous_token.source_span,
+		                    "Expected a '" YELLOW_HIGHLIGHT(";") "' after the '" YELLOW_HIGHLIGHT("%s") "'!",
+		                    parser->lexer->previous_token.lexeme);
+		return &invalid_statement;
+	}
+
+	parser_advance(parser); // consume ;
+
+	return statement;
+}
+
+Statement* parse_statement(Parser* parser)
+{
+	// TRACE("Type %s \n", parser->lexer->current_token.lexeme);
+	switch (parser->lexer->current_token.type)
+	{
+	case TOKEN_RETURN_KEYWORD:
+		return parse_return_statement(parser);
+
+	case TOKEN_EOF:
+		parser_report_error(&parser->lexer->current_token.source_span,
+		                    "Reached the end of the file when expecting a statement.");
+
+		return &invalid_statement;
+	default:
+		parser_report_error(&parser->lexer->current_token.source_span,
+		                    UNEXPECTED_TOKEN_MESSAGE " A statement was expected!", parser->lexer->current_token.lexeme);
+
+		return &invalid_statement;
+	}
+}
+
+Statement* parse_compound_statement(Parser* parser)
+{
+	if (!parser_expect(parser, TOKEN_OPEN_BRACE))
+		return &invalid_statement;
+
+	parser_advance(parser); // consume {
+
+	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
+	statement->type      = STATEMENT_COMPOUND;
+
+	Statement** last_ptr = &statement->compound.first;
+
+	while (!try_advance(parser, TOKEN_CLOSE_BRACE)) // process till the end of }
+	{
+		Statement* inner = parse_statement(parser);
+		if (inner->type == STATEMENT_INVALID)
+			return &invalid_statement;
+
+		*last_ptr = inner;
+		last_ptr  = &inner->next;
+	}
+
+	return statement;
 }
 
 Declaration* parse_top_level_statement(Parser* parser)
@@ -166,7 +260,11 @@ Declaration* parse_top_level_statement(Parser* parser)
 		if (!parse_function_signature(parser, &new_declaration->function.signature))
 			return &invalid_declaration;
 
-		// parse_function_body();
+		Statement* body = parse_compound_statement(parser);
+		if (body->type == STATEMENT_INVALID)
+			return &invalid_declaration;
+
+		new_declaration->function.body = body;
 
 		vector_push(parser->context->functions_declarations, new_declaration);
 
