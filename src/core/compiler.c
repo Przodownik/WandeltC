@@ -47,7 +47,7 @@ void compiler_parse(Compiler* compiler)
 {
 	for (uint64 i = 0; i < vector_get_length(compiler->build_options.file_sources); ++i)
 	{
-		TRACE(ANSI_COLOR_CYAN "Lexing file %s...\n" ANSI_COLOR_RESET, compiler->build_options.file_sources[i].path);
+		TRACE(ANSI_COLOR_CYAN "Parsing file %s...\n" ANSI_COLOR_RESET, compiler->build_options.file_sources[i].path);
 
 		Lexer lexer = lexer_create(&compiler->build_options.file_sources[i]);
 
@@ -65,5 +65,5 @@ void compiler_parse(Compiler* compiler)
 
 void compiler_compile(Compiler* compiler)
 {
-	(void)compiler;
+	compiler_parse(compiler);
 }

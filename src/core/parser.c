@@ -16,6 +16,7 @@ extern HashMap type_table;                   // from compiler_internal.h
 
 static Declaration invalid_declaration = {.kind = DECLARATION_INVALID};
 static Statement invalid_statement     = {.type = DECLARATION_INVALID};
+static Expression invalid_expression   = {.kind = EXPRESSION_INVALID};
 
 Parser parser_create(Context* context, Lexer* lexer)
 {
@@ -32,8 +33,8 @@ void parser_advance(Parser* parser)
 
 	Token token = parser->lexer->current_token;
 
-	// TRACE("Consuming token:  <Token id=\"%i\" type=\"%s\", value=\"%s\" />\n", parser->lexer->token_count,
-	// token_type_to_enum_stringified(token.type), token.lexeme);
+	TRACE("Consuming token:  <Token id=\"%i\" type=\"%s\", value=\"%s\" />\n", parser->lexer->token_count,
+	      token_type_to_enum_stringified(token.type), token.lexeme);
 
 	if (token.type == TOKEN_EOF)
 		return;
@@ -169,11 +170,23 @@ bool parse_function_signature(Parser* parser, FunctionSignature* signature)
 
 Expression* parse_expression(Parser* parser)
 {
-	Expression* expression        = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
-	expression->kind              = EXPRESSION_LITERAL;
-	expression->literal.int_value = 14;
+	Expression* expression = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind       = EXPRESSION_LITERAL;
 
-	parser_advance(parser); // consume expression
+	if (parser->lexer->current_token.type == TOKEN_NUMBER)
+	{
+		expression->kind              = EXPRESSION_LITERAL;
+		expression->literal.int_value = atoi(parser->lexer->current_token.lexeme);
+		parser_advance(parser); // consume the number
+	}
+	else
+	{
+		parser_report_error(&parser->lexer->current_token.source_span,
+		                    "Expected a valid expression and received '" YELLOW_HIGHLIGHT("%s") "'",
+		                    parser->lexer->current_token.lexeme);
+
+		return &invalid_expression;
+	}
 
 	return expression;
 }
@@ -185,6 +198,9 @@ Statement* parse_return_statement(Parser* parser)
 	Statement* statement          = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
 	statement->type               = STATEMENT_RETURN;
 	statement->return_.expression = parse_expression(parser);
+
+	if (statement->return_.expression->kind == EXPRESSION_INVALID)
+		return &invalid_statement;
 
 	if (!parser_expect(parser, TOKEN_SEMICOLON))
 	{

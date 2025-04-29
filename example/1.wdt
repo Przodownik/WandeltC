@@ -10,6 +10,6 @@
 
 fn int32 main()
 {
-    return 14;
+    return 1;
 }
 
