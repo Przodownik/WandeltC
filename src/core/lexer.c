@@ -5,6 +5,7 @@
 
 extern ArenaAllocator string_allocator; // from compiler_internal.h
 extern HashMap symbol_table;            // from compiler_internal.h
+extern Context global_context;          // from compiler_internal.h
 
 #define lexer_get_current_char(lexer)  (*(lexer)->current_char)
 #define lexer_get_previous_char(lexer) (*((lexer)->current_char - 1))
@@ -183,6 +184,8 @@ bool lexer_make_new_verror_token_at_lexing_start(Lexer* lexer, const char* msg, 
 	va_start(list, msg);
 	diagnostics_verror_along_span(&span, msg, list);
 	va_end(list);
+
+	global_context.error_count++;
 
 	return false;
 }

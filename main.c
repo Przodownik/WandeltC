@@ -54,8 +54,7 @@ int32 main(void)
 	compiler.build_options.lexer_debug  = true;
 	compiler.build_options.parsed_debug = true;
 
-	// compiler_lex(&compiler);
-	compiler_parse(&compiler);
+	compiler_compile(&compiler);
 
 	vector_destroy(file_sources);
 

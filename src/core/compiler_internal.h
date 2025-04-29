@@ -68,6 +68,7 @@ typedef struct _Declaration
 {
 	DeclKind kind;
 	Visibility visibility;
+	SourceSpan source_span;
 	union {
 		FunctionDeclaration function;
 	};
@@ -99,6 +100,7 @@ typedef struct _ReturnStatement
 typedef struct _Statement
 {
 	StatementType type;
+	SourceSpan source_span;
 	Statement* next;
 
 	union {
@@ -141,6 +143,7 @@ typedef struct _UnaryExpression
 typedef struct _Expression
 {
 	ExpressionKind kind;
+	SourceSpan source_span;
 
 	union {
 		LiteralExpression literal;
@@ -152,6 +155,8 @@ typedef struct _Expression
 typedef struct _Context
 {
 	Declaration** functions_declarations;
+	int32 warning_count;
+	int32 error_count;
 } Context;
 
 ArenaAllocator string_allocator;
@@ -171,3 +176,14 @@ void compiler_internal_shutdown(void);
 void global_context_emit_functions_json(Context* context, FILE* file);
 void global_context_emit_json_to_file(Context* context, FILE* file);
 void global_context_emit_json(Context* context);
+
+static inline SourceSpan extend_span_with_token(SourceSpan loc, SourceSpan after)
+{
+	if (loc.row != after.row)
+		return loc;
+
+	loc.length = after.column + after.length - loc.column;
+	
+	return loc;
+}
+

@@ -2,6 +2,9 @@
 
 #include "lexer.h"
 #include "parser.h"
+#include "semantic_analyser.h"
+#include "codegen.h"
+#include "utils/defines.h"
 
 extern Context global_context; // from compiler_internal.h
 
@@ -66,4 +69,22 @@ void compiler_parse(Compiler* compiler)
 void compiler_compile(Compiler* compiler)
 {
 	compiler_parse(compiler);
+
+	sema_analyse_parsed_context();
+
+	if (global_context.error_count > 0)
+	{
+		TRACE(ANSI_COLOR_RED "Stopping codegen because of %i errors...\n" ANSI_COLOR_RESET, global_context.error_count);
+		return;
+	}
+
+	codegen_generate();
+
+	if (global_context.warning_count > 0)
+	{
+		TRACE(ANSI_COLOR_ORANGE "Compilation finished with %i warnings\n" ANSI_COLOR_RESET, global_context.warning_count);
+		return;
+	}
+
+	TRACE(ANSI_COLOR_GREEN "Compilation finished successfully\n" ANSI_COLOR_RESET);
 }

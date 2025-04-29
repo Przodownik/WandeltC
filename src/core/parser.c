@@ -7,6 +7,7 @@ extern ArenaAllocator declaration_allocator; // from compiler_internal.h
 extern ArenaAllocator statement_allocator;   // from compiler_internal.h
 extern ArenaAllocator expression_allocator;  // from compiler_internal.h
 extern HashMap type_table;                   // from compiler_internal.h
+extern Context global_context;               // from compiler_internal.h
 
 #define YELLOW_HIGHLIGHT(text)   ANSI_COLOR_YELLOW text ANSI_COLOR_RED
 #define UNEXPECTED_TOKEN_MESSAGE "Unexpected token '" YELLOW_HIGHLIGHT("%s") "' found!"
@@ -98,6 +99,8 @@ void recover_from_error(Parser* parser)
 
 void parser_report_error(SourceSpan* location, const char* message, ...)
 {
+	global_context.error_count++;
+	
 	va_list list;
 	va_start(list, message);
 	diagnostics_verror_along_span(location, message, list);
