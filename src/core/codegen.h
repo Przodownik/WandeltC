@@ -5,4 +5,6 @@
  */
 #pragma once
 
+#include "core/compiler_internal.h"
+
 void codegen_generate(void);

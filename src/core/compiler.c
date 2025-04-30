@@ -50,7 +50,8 @@ void compiler_parse(Compiler* compiler)
 {
 	for (uint64 i = 0; i < vector_get_length(compiler->build_options.file_sources); ++i)
 	{
-		TRACE(ANSI_COLOR_CYAN "Parsing file %s...\n" ANSI_COLOR_RESET, compiler->build_options.file_sources[i].path);
+		TRACE(ANSI_COLOR_CYAN "Lexing and parsing file %s...\n" ANSI_COLOR_RESET,
+		      compiler->build_options.file_sources[i].path);
 
 		Lexer lexer = lexer_create(&compiler->build_options.file_sources[i]);
 
@@ -59,7 +60,7 @@ void compiler_parse(Compiler* compiler)
 		Parser parser = parser_create(&global_context, &lexer);
 		parser_parse(&parser);
 
-		TRACE(ANSI_COLOR_CYAN "Parsing file %s took %f ms\n" ANSI_COLOR_RESET,
+		TRACE(ANSI_COLOR_CYAN "Lexing and parsing file %s took %f ms\n" ANSI_COLOR_RESET,
 		      compiler->build_options.file_sources[i].path, clock_get_elapsed_time(&clock) * 1000.0f);
 	}
 

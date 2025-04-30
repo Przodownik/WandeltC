@@ -21,6 +21,11 @@ int32 main(void)
 		// Strip newline characters
 		line[strcspn(line, "\r\n")] = 0;
 
+		// skip everything after #
+		char* comment = strchr(line, '#');
+		if (comment != nullptr)
+			*comment = '\0';
+
 		size_t length = strlen(line);
 		if (length == 0)
 			continue;
