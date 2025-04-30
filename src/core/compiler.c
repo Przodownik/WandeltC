@@ -1,9 +1,9 @@
 #include "compiler.h"
 
+#include "codegen.h"
 #include "lexer.h"
 #include "parser.h"
 #include "semantic_analyser.h"
-#include "codegen.h"
 #include "utils/defines.h"
 
 extern Context global_context; // from compiler_internal.h
@@ -82,7 +82,8 @@ void compiler_compile(Compiler* compiler)
 
 	if (global_context.warning_count > 0)
 	{
-		TRACE(ANSI_COLOR_ORANGE "Compilation finished with %i warnings\n" ANSI_COLOR_RESET, global_context.warning_count);
+		TRACE(ANSI_COLOR_ORANGE "Compilation finished with %i warnings\n" ANSI_COLOR_RESET,
+		      global_context.warning_count);
 		return;
 	}
 

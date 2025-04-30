@@ -8,6 +8,9 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # Export compile commands for clangd
 
+include(FetchContent)
+include(FeatureSummary)
+
 if(MSVC)
     # Tell CMake that MSVC supports C23
     set(CMAKE_C23_STANDARD_COMPILE_OPTION "/std:clatest")
@@ -25,6 +28,7 @@ if(MSVC)
     # /wd4061: Suppresses warnings about missing switch cases
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Od /Zi /utf-8 /wd5045 /wd4820 /wd4599 /wd4061")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /O2 /utf-8 /wd5045 /wd4820 /wd4599 /wd4061")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
 add_subdirectory(src)

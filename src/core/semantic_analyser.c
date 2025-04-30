@@ -1,4 +1,5 @@
 #include "semantic_analyser.h"
+#include "diagnostics.h"
 
 extern Context global_context; // from compiler_internal.h
 
@@ -24,19 +25,19 @@ void sema_report_warning(SourceSpan* location, const char* message, ...)
 
 void sema_analyse_function_declaration(Declaration* declaration)
 {
-	const FunctionSignature signature = declaration->function.signature;
-	const Statement* first_body_statement  = declaration->function.body->compound.first;
+	// const FunctionSignature signature     = declaration->function.signature;
+	// const Statement* first_body_statement = declaration->function.body->compound.first;
 
-	// check if return type is valid
-	while (first_body_statement != nullptr)
-	{
-		if (first_body_statement->type == STATEMENT_RETURN)
-		{
-			ERROR("Invalid return type.");
-		}
-		
-		first_body_statement = first_body_statement->next;
-	}
+	// // check if return type is valid
+	// while (first_body_statement != nullptr)
+	// {
+	// 	if (first_body_statement->type == STATEMENT_RETURN)
+	// 	{
+	// 		ERROR("Invalid return type.");
+	// 	}
+
+	// 	first_body_statement = first_body_statement->next;
+	// }
 }
 
 void sema_analyse_parsed_context(void)
