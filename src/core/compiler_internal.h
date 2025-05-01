@@ -12,6 +12,22 @@ typedef struct _Statement Statement;
 typedef struct _Type Type;
 typedef struct _Expression Expression;
 
+typedef enum _DeliverableType
+{
+	DELIVERABLE_TYPE_EXECUTABLE,
+	DELIVERABLE_TYPE_STATIC_LIB,
+	DELIVERABLE_TYPE_DYNAMIC_LIB
+} DeliverableType;
+
+typedef struct _CompilerBuildOptions
+{
+	const char* project_name;
+	DeliverableType deliverable_type;
+	File* file_sources;
+	bool lexer_debug;
+	bool parsed_debug;
+} CompilerBuildOptions;
+
 typedef struct _SourceSpan
 {
 	const File* source_file;
@@ -69,6 +85,8 @@ typedef struct _Declaration
 	DeclKind kind;
 	Visibility visibility;
 	SourceSpan source_span;
+	void* handle;
+
 	union {
 		FunctionDeclaration function;
 	};
@@ -183,7 +201,6 @@ static inline SourceSpan extend_span_with_token(SourceSpan loc, SourceSpan after
 		return loc;
 
 	loc.length = after.column + after.length - loc.column;
-	
+
 	return loc;
 }
-

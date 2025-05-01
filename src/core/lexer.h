@@ -39,7 +39,7 @@ bool lexer_match_and_advance(Lexer* lexer, char expected);
 
 void lexer_skip_whitespace(Lexer* lexer);
 
-bool lexer_make_new_token(Lexer* lexer, TokenType type, char* lexeme);
+bool lexer_make_new_token(Lexer* lexer, TokenType type, const char* lexeme);
 
 bool lexer_make_new_verror_token_at_lexing_start(Lexer* lexer, const char* msg, ...);
 

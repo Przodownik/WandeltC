@@ -152,7 +152,7 @@ void lexer_skip_whitespace(Lexer* lexer)
 	}
 }
 
-bool lexer_make_new_token(Lexer* lexer, TokenType type, char* lexeme)
+bool lexer_make_new_token(Lexer* lexer, TokenType type, const char* lexeme)
 {
 	SourceSpan span;
 	span.source_file = lexer->source_file;

@@ -100,7 +100,7 @@ void recover_from_error(Parser* parser)
 void parser_report_error(SourceSpan* location, const char* message, ...)
 {
 	global_context.error_count++;
-	
+
 	va_list list;
 	va_start(list, message);
 	diagnostics_verror_along_span(location, message, list);
@@ -140,6 +140,8 @@ bool parse_type(Parser* parser, Type* type)
 		return false;
 	}
 
+	type->kind = *kind;
+
 	parser_advance(parser); // consume the type
 
 	return true;
@@ -155,6 +157,8 @@ bool parse_parameters(Parser* parser, Declaration** parameters)
 	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_CLOSE_PAREN));
 
 	parser_advance(parser); // consume )
+
+	(void)parameters; // todo
 
 	return true;
 }

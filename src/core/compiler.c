@@ -79,7 +79,7 @@ void compiler_compile(Compiler* compiler)
 		return;
 	}
 
-	codegen_generate();
+	codegen_generate(&compiler->build_options);
 
 	if (global_context.warning_count > 0)
 	{

@@ -7,4 +7,4 @@
 
 #include "core/compiler_internal.h"
 
-void codegen_generate(void);
+void codegen_generate(CompilerBuildOptions* build_options);

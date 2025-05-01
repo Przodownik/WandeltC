@@ -7,22 +7,6 @@
 
 #include "core/compiler_internal.h"
 
-typedef enum _DeliverableType
-{
-	DELIVERABLE_TYPE_EXECUTABLE,
-	DELIVERABLE_TYPE_STATIC_LIB,
-	DELIVERABLE_TYPE_DYNAMIC_LIB
-} DeliverableType;
-
-typedef struct _CompilerBuildOptions
-{
-	const char* project_name;
-	DeliverableType deliverable_type;
-	File* file_sources;
-	bool lexer_debug;
-	bool parsed_debug;
-} CompilerBuildOptions;
-
 typedef struct _Compiler
 {
 	CompilerBuildOptions build_options;

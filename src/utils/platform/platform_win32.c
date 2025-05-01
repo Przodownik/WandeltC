@@ -18,6 +18,16 @@ Clock clock_create(void)
 	return (Clock){start.QuadPart, freq.QuadPart};
 }
 
+Clock clock_restart_from_now(Clock* clock)
+{
+	LARGE_INTEGER freq, start;
+	QueryPerformanceFrequency(&freq);
+	QueryPerformanceCounter(&start);
+
+	clock->begin_time = start.QuadPart;
+	clock->frequency  = freq.QuadPart;
+}
+
 float64 clock_get_elapsed_time(Clock* clock)
 {
 	LARGE_INTEGER now;
