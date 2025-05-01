@@ -1,0 +1,17 @@
+fn int32 main()
+{
+    return 21;
+}
+
+/*
+#expect
+; ModuleID = 'module:core'
+source_filename = "main.wdt"
+target datalayout = ""
+target triple = ""
+
+define i32 @main() {
+entry:
+  ret i32 21
+}
+*/

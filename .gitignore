@@ -2,3 +2,7 @@
 .vscode
 out
 build
+
+*.obj
+*.exe
+*.ll

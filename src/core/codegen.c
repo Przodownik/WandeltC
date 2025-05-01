@@ -160,6 +160,17 @@ void codegen_generate(CompilerBuildOptions* build_options)
 
 	char* ir_string = LLVMPrintModuleToString(context.llvm_module);
 	printf("%s\n", ir_string);
+
+	// output to file output.ll (temporary)
+	FILE* ir_file = fopen("output.ll", "w+");
+	if (ir_file == NULL)
+	{
+		ERROR("Could not open file output.ll for writing.\n");
+		return;
+	}
+	fwrite(ir_string, sizeof(char), strlen(ir_string), ir_file);
+	fclose(ir_file);
+
 	LLVMDisposeMessage(ir_string);
 
 	clock_restart_from_now(&clock);

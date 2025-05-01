@@ -8,6 +8,10 @@
       "projectTarget": "Wandelt.exe",
       "name": "Wandelt.exe",
       "currentDir": "${workspaceRoot}/example"
+      //"args": [
+      //  "--files",
+      //  "wandelt/simple.wdt"
+      //]
     }
   ]
 }

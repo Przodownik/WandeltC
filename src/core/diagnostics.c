@@ -31,7 +31,7 @@ void diagnostics_print_at_location(SourceSpan* span, const char* message, Diagno
 
 	const char* row_start = span->source_file->content;
 
-	TRACE("\n");
+	ETRACE("\n");
 
 	if (span->row != 1)
 	{
@@ -52,7 +52,7 @@ void diagnostics_print_at_location(SourceSpan* span, const char* message, Diagno
 
 			uint32 row_length = (uint32)(row_end - row_start);
 
-			VTRACE(number_buffer, row_start_index + 1, row_length, row_start);
+			EVTRACE(number_buffer, row_start_index + 1, row_length, row_start);
 
 			row_start_index++;
 		}
@@ -61,29 +61,29 @@ void diagnostics_print_at_location(SourceSpan* span, const char* message, Diagno
 	{
 		const char* row_end = strchr(row_start, '\n');
 		uint32 row_length   = (uint32)(row_end - row_start);
-		VTRACE(number_buffer, 1, row_length, row_start);
+		EVTRACE(number_buffer, 1, row_length, row_start);
 	}
 
 	// Skip the formatted number buffer line number
 	for (uint32 i = 0; i < count_digits(row_start_index); i++)
 	{
-		TRACE(" ");
+		ETRACE(" ");
 	}
 
 	// Skip the "| " before the code starts
-	TRACE("  ");
+	ETRACE("  ");
 
 	for (uint32 i = 1; i < span->column; i++)
 	{
-		TRACE(" ");
+		ETRACE(" ");
 	}
 
 	for (uint32 l = 0; l < span->length; l++)
 	{
-		TRACE(ANSI_COLOR_YELLOW "^" ANSI_COLOR_RESET);
+		ETRACE(ANSI_COLOR_YELLOW "^" ANSI_COLOR_RESET);
 	}
 
-	TRACE("\n");
+	ETRACE("\n");
 
 	while (row_start_index <= span->row + max_lines_for_display + 1)
 	{
@@ -98,7 +98,7 @@ void diagnostics_print_at_location(SourceSpan* span, const char* message, Diagno
 
 		uint32 row_length = (uint32)(row_end - row_start);
 
-		VTRACE(number_buffer, row_start_index + 1, row_length, row_start);
+		EVTRACE(number_buffer, row_start_index + 1, row_length, row_start);
 
 		row_start_index++;
 	}
@@ -106,22 +106,22 @@ void diagnostics_print_at_location(SourceSpan* span, const char* message, Diagno
 	switch (print_type)
 	{
 	case PRINT_TYPE_ERROR:
-		TRACE(ANSI_COLOR_RED "Error in file (%s) in row %d in column %d\n%s\n" ANSI_COLOR_RESET,
-		      span->source_file->path, span->row, span->column, message);
+		ETRACE(ANSI_COLOR_RED "Error in file (%s) in row %d in column %d\n%s\n" ANSI_COLOR_RESET,
+		       span->source_file->path, span->row, span->column, message);
 		break;
 	case PRINT_TYPE_WARN:
-		TRACE(ANSI_COLOR_ORANGE "Warning in file (%s) in row %d in column %d\n%s\n" ANSI_COLOR_RESET,
-		      span->source_file->path, span->row, span->column, message);
+		ETRACE(ANSI_COLOR_ORANGE "Warning in file (%s) in row %d in column %d\n%s\n" ANSI_COLOR_RESET,
+		       span->source_file->path, span->row, span->column, message);
 		break;
 	case PRINT_TYPE_NOTE:
-		TRACE(ANSI_COLOR_BLUE "Note in file (%s) in row %d in column %d\n%s\n" ANSI_COLOR_RESET,
-		      span->source_file->path, span->row, span->column, message);
+		ETRACE(ANSI_COLOR_BLUE "Note in file (%s) in row %d in column %d\n%s\n" ANSI_COLOR_RESET,
+		       span->source_file->path, span->row, span->column, message);
 		break;
 	default:
 		ASSERT(false, "Invalid print type");
 	}
 
-	TRACE("\n");
+	ETRACE("\n");
 }
 
 void diagnostics_vnote_along_span(SourceSpan* location, const char* message, va_list args)
