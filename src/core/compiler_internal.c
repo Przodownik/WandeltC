@@ -1,5 +1,7 @@
 #include "compiler_internal.h"
 
+#include "vendor/cJSON/cJSON.h"
+
 void compiler_internal_initialize(void)
 {
 	arena_allocator_create(&string_allocator, "STRING allocator", MB(1));
@@ -40,144 +42,158 @@ void compiler_internal_shutdown(void)
 	vector_destroy(global_context.functions_declarations);
 }
 
-void emit_expression_json(Expression* expr, FILE* file, int indent)
+const char* binary_operator_to_string(BinaryOperator op)
+{
+	switch (op)
+	{
+	case BINARY_OPERATOR_ADD:
+		return "+";
+	case BINARY_OPERATOR_SUBTRACT:
+		return "-";
+	case BINARY_OPERATOR_MULTIPLY:
+		return "*";
+	case BINARY_OPERATOR_DIVIDE:
+		return "/";
+	default:
+		return "unknown";
+	}
+}
+
+void emit_expression_json(Expression* expr, cJSON* parent)
 {
 	if (!expr)
 	{
-		fprintf(file, "%*snull", indent * 4, "");
+		cJSON_AddNullToObject(parent, "expression");
 		return;
 	}
 
-	fprintf(file, "%*s{\n", 0, "");
-	fprintf(file, "%*s\"kind\": \"", (indent + 1) * 4, "");
+	cJSON* obj = cJSON_CreateObject();
 	switch (expr->kind)
 	{
 	case EXPRESSION_LITERAL:
-		fputs("literal expression", file);
+		cJSON_AddStringToObject(obj, "kind", "literal");
+		cJSON_AddNumberToObject(obj, "value", expr->literal.int_value);
 		break;
+
+	case EXPRESSION_GROUP:
+		cJSON_AddStringToObject(obj, "kind", "group");
+		if (expr->group.expression)
+		{
+			cJSON* group = cJSON_CreateObject();
+			emit_expression_json(expr->group.expression, group);
+			cJSON_AddItemToObject(obj, "value", group);
+		}
+		break;
+	case EXPRESSION_BINARY:
+		cJSON_AddStringToObject(obj, "kind", "binary");
+		cJSON_AddStringToObject(obj, "operator", binary_operator_to_string(expr->binary.operator));
+		cJSON* left  = cJSON_CreateObject();
+		cJSON* right = cJSON_CreateObject();
+		emit_expression_json(expr->binary.left, left);
+		emit_expression_json(expr->binary.right, right);
+		cJSON_AddItemToObject(obj, "left", left);
+		cJSON_AddItemToObject(obj, "right", right);
+		break;
+
 	default:
-		fputs("UNKNOWN", file);
+		cJSON_AddStringToObject(obj, "kind", "unknown");
+		cJSON_AddNullToObject(obj, "value");
 		break;
 	}
-	fprintf(file, "\",\n");
-	fprintf(file, "%*s\"value\": ", (indent + 1) * 4, "");
-	switch (expr->kind)
-	{
-	case EXPRESSION_LITERAL:
-		fprintf(file, "\"%i\"", expr->literal.int_value);
-		break;
-	default:
-		fputs("null", file);
-		break;
-	}
-	fprintf(file, "\n%*s}", indent * 4, "");
+
+	cJSON_AddItemToObject(parent, "expression", obj);
 }
 
-void emit_statement_json(Statement* stmt, FILE* file, int indent)
+void emit_statement_json(Statement* stmt, cJSON* array)
 {
 	if (!stmt)
 	{
-		fprintf(file, "%*snull", indent * 4, "");
+		cJSON_AddItemToArray(array, cJSON_CreateNull());
 		return;
 	}
 
-	fprintf(file, "%*s{\n", 0, "");
-	fprintf(file, "%*s\"type\": \"", (indent + 1) * 4, "");
+	cJSON* obj = cJSON_CreateObject();
+
 	switch (stmt->type)
 	{
 	case STATEMENT_RETURN:
-		fputs("return statement", file);
+		cJSON_AddStringToObject(obj, "type", "return");
+		emit_expression_json(stmt->return_.expression, obj);
 		break;
-	case STATEMENT_COMPOUND:
-		fputs("compound statement", file);
-		break;
-	case STATEMENT_INVALID:
-		fputs("INVALID", file);
-		break;
-	default:
-		fputs("UNKNOWN", file);
-		break;
-	}
-	fprintf(file, "\",\n");
-	fprintf(file, "%*s\"data\": ", (indent + 1) * 4, "");
-	switch (stmt->type)
-	{
-	case STATEMENT_RETURN:
-		emit_expression_json(stmt->return_.expression, file, indent + 1);
-		break;
+
 	case STATEMENT_COMPOUND: {
-		fprintf(file, "[\n");
+		cJSON_AddStringToObject(obj, "type", "compound");
+		cJSON* body_array = cJSON_CreateArray();
+
 		Statement* inner = stmt->compound.first;
 		while (inner)
 		{
-			fprintf(file, "%*s", (indent + 2) * 4, "");
-			emit_statement_json(inner, file, indent + 2);
+			emit_statement_json(inner, body_array);
 			inner = inner->next;
-			if (inner)
-			{
-				fprintf(file, ",");
-			}
-			fprintf(file, "\n");
 		}
-		fprintf(file, "%*s]", (indent + 1) * 4, "");
+
+		cJSON_AddItemToObject(obj, "body", body_array);
 		break;
 	}
+
 	default:
-		fputs("null", file);
+		cJSON_AddStringToObject(obj, "type", "unknown");
 		break;
 	}
-	fprintf(file, "\n%*s}", indent * 4, "");
+
+	cJSON_AddItemToArray(array, obj);
 }
 
-void emit_declaration_json(Declaration* decl, FILE* file, int indent)
+void emit_declaration_json(Declaration* decl, cJSON* element)
 {
-	if (!decl)
-	{
-		fprintf(file, "%*snull", indent * 4, "");
-		return;
-	}
+	ASSERT(decl != NULL, "Declaration is null!");
 
-	fprintf(file, "%*s{\n", indent * 4, "");
-	fprintf(file, "%*s\"kind\": \"", (indent + 1) * 4, "");
-	switch (decl->kind)
-	{
-	case DECLARATION_FUNCTION:
-		fputs("function declaration", file);
-		break;
-	default:
-		fputs("UNKNOWN", file);
-		break;
-	}
-	fprintf(file, "\",\n");
-	fprintf(file, "%*s\"data\": {\n", (indent + 1) * 4, "");
-	fprintf(file, "%*s\"name\": \"%s\",\n", (indent + 2) * 4, "", decl->function.signature.name);
-	fprintf(file, "%*s\"body\": ", (indent + 2) * 4, "");
-	emit_statement_json(decl->function.body, file, indent + 2);
-	fprintf(file, "\n%*s}\n", (indent + 1) * 4, "");
-	fprintf(file, "%*s}", indent * 4, "");
+	cJSON* json_decl = cJSON_CreateObject();
+	cJSON_AddStringToObject(json_decl, "kind", decl->kind == DECLARATION_FUNCTION ? "function" : "unknown");
+
+	cJSON* data = cJSON_CreateObject();
+	cJSON_AddStringToObject(data, "name", decl->function.signature.name);
+
+	cJSON* body_array = cJSON_CreateArray();
+	emit_statement_json(decl->function.body, body_array);
+	cJSON_AddItemToObject(data, "body", body_array);
+
+	cJSON_AddItemToObject(json_decl, "data", data);
+	cJSON_AddItemToArray(element, json_decl);
 }
 
-void global_context_emit_functions_json(Context* context, FILE* file)
+void global_context_emit_functions_json(Context* context, cJSON* element)
 {
 	uint64 len = vector_get_length(context->functions_declarations);
 	for (uint64 i = 0; i < len; ++i)
 	{
 		Declaration* declaration = context->functions_declarations[i];
-		emit_declaration_json(declaration, file, 1);
-		if (i < len - 1)
-		{
-			fprintf(file, ",\n");
-		}
+		emit_declaration_json(declaration, element);
 	}
 }
 
 void global_context_emit_json_to_file(Context* context, FILE* file)
 {
 	TRACE("Emitting parsed global context as JSON to %s...\n", file == stdout ? "console" : "file");
-	fputs("[\n", file);
-	global_context_emit_functions_json(context, file);
-	fputs("\n]\n", file);
-	TRACE("JSON emitted successfully!\n");
+
+	cJSON* root = cJSON_CreateArray();
+	global_context_emit_functions_json(context, root);
+
+	FILE* json_file = fopen("output.json", "w+");
+	if (json_file == nullptr)
+	{
+		ERROR("Could not open file output.json for writing.\n");
+		cJSON_Delete(root);
+		return;
+	}
+	char* printed_json = cJSON_Print(root);
+	fwrite(printed_json, sizeof(char), strlen(printed_json), json_file);
+	fclose(json_file);
+
+	// fprintf(file, "%s\n", printed_json);
+
+	free(printed_json);
+	cJSON_Delete(root);
 }
 
 void global_context_emit_json(Context* context)
