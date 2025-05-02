@@ -19,6 +19,8 @@ static Declaration invalid_declaration = {.kind = DECLARATION_INVALID};
 static Statement invalid_statement     = {.type = DECLARATION_INVALID};
 static Expression invalid_expression   = {.kind = EXPRESSION_INVALID};
 
+static Type int32_type = {.kind = TYPE_KIND_INT_32};
+
 Parser parser_create(Context* context, Lexer* lexer)
 {
 	Parser parser;
@@ -79,8 +81,6 @@ bool try_advance(Parser* parser, TokenType type)
 
 void recover_from_error(Parser* parser)
 {
-	// TRACE("ERROR happened \n");
-
 	parser_advance(parser);
 
 	while (parser->lexer->current_token.type != TOKEN_EOF)
@@ -105,6 +105,38 @@ void parser_report_error(SourceSpan* location, const char* message, ...)
 	va_start(list, message);
 	diagnostics_verror_along_span(location, message, list);
 	va_end(list);
+}
+
+#define TOKEN_BINARY_OPERATORS \
+	case TOKEN_STAR:           \
+	case TOKEN_SLASH:          \
+	case TOKEN_PLUS:           \
+	case TOKEN_MINUS
+
+int8 parser_get_token_precedence(TokenType type)
+{
+	switch (type)
+	{
+	case TOKEN_STAR_STAR:
+	case TOKEN_PERCENT:
+		return 6;
+	case TOKEN_STAR:
+	case TOKEN_SLASH:
+		return 5;
+	case TOKEN_PLUS:
+	case TOKEN_MINUS:
+		return 4;
+	case TOKEN_LESS:
+	case TOKEN_LESS_OR_EQUAL:
+	case TOKEN_GREATER:
+	case TOKEN_GREATER_OR_EQUAL:
+		return 3;
+	case TOKEN_EQUAL_EQUAL:
+	case TOKEN_NOT_EQUAL:
+		return 2;
+	default:
+		return -1;
+	}
 }
 
 // <identifier>
@@ -175,27 +207,113 @@ bool parse_function_signature(Parser* parser, FunctionSignature* signature)
 	return true;
 }
 
-Expression* parse_expression(Parser* parser)
+Expression* parse_literal_expression(Parser* parser)
 {
-	Expression* expression = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
-	expression->kind       = EXPRESSION_LITERAL;
-
-	if (parser->lexer->current_token.type == TOKEN_NUMBER)
-	{
-		expression->kind              = EXPRESSION_LITERAL;
-		expression->literal.int_value = atoi(parser->lexer->current_token.lexeme);
-		parser_advance(parser); // consume the number
-	}
-	else
+	if (parser->lexer->current_token.type != TOKEN_NUMBER)
 	{
 		parser_report_error(&parser->lexer->current_token.source_span,
-		                    "Expected a valid expression and received '" YELLOW_HIGHLIGHT("%s") "'",
+		                    "Expected a number and received '" YELLOW_HIGHLIGHT("%s") "'",
 		                    parser->lexer->current_token.lexeme);
-
 		return &invalid_expression;
 	}
 
+	Expression* expression        = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind              = EXPRESSION_LITERAL;
+	expression->literal.int_value = atoi(parser->lexer->current_token.lexeme);
+	expression->literal.type      = &int32_type; // TODO add type deduction
+
+	parser_advance(parser); // consume the number
+
 	return expression;
+}
+
+Expression* parse_grouped_expression(Parser* parser)
+{
+	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_OPEN_PAREN));
+
+	parser_advance(parser); // consume (
+
+	Expression* expression       = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind             = EXPRESSION_GROUP;
+	expression->group.expression = parse_expression(parser);
+
+	if (expression->group.expression->kind == EXPRESSION_INVALID)
+		return &invalid_expression;
+
+	if (!parser_expect(parser, TOKEN_CLOSE_PAREN))
+		return &invalid_expression;
+
+	parser_advance(parser); // consume )
+
+	return expression;
+}
+
+Expression* parse_primary_expression(Parser* parser)
+{
+	switch (parser->lexer->current_token.type)
+	{
+	case TOKEN_NUMBER:
+		return parse_literal_expression(parser);
+	case TOKEN_OPEN_PAREN:
+		return parse_grouped_expression(parser);
+	default:
+		parser_report_error(
+		    &parser->lexer->current_token.source_span,
+		    "Expected an " YELLOW_HIGHLIGHT("expression") ", but received a '" YELLOW_HIGHLIGHT("%s") "'",
+		    parser->lexer->current_token.lexeme);
+		return &invalid_expression;
+	}
+}
+
+Expression* parse_expression_rhs(Parser* parser, Expression* lhs, int8 min_precedence)
+{
+	while (true)
+	{
+		Token current_token = parser->lexer->current_token;
+		int8 precedence     = parser_get_token_precedence(current_token.type);
+
+		// Stop if not an operator or precedence too low
+		if (precedence < min_precedence)
+			return lhs;
+
+		TokenType operator= current_token.type;
+		parser_advance(parser); // consume the operator
+
+		// Parse right-hand side
+		Expression* rhs = parse_primary_expression(parser);
+		if (rhs->kind == EXPRESSION_INVALID)
+			return &invalid_expression;
+
+		// Check for next operator with higher precedence
+		int8 next_precedence = parser_get_token_precedence(parser->lexer->current_token.type);
+		if (next_precedence > precedence)
+		{
+			rhs = parse_expression_rhs(parser, rhs, precedence + 1);
+			if (rhs->kind == EXPRESSION_INVALID)
+			{
+				return &invalid_expression;
+			}
+		}
+
+		Expression* binary  = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+		binary->kind        = EXPRESSION_BINARY;
+		binary->binary.left = lhs;
+		binary->binary.operator= operator;
+		binary->binary.right = rhs;
+
+		// Continue with the binary expression as the new left-hand side
+		lhs = binary;
+	}
+}
+
+Expression* parse_expression(Parser* parser)
+{
+	Expression* lhs = parse_primary_expression(parser);
+
+	if (lhs->kind == EXPRESSION_INVALID)
+		return &invalid_expression;
+
+	return parse_expression_rhs(parser, lhs, 0);
 }
 
 Statement* parse_return_statement(Parser* parser)
@@ -211,9 +329,6 @@ Statement* parse_return_statement(Parser* parser)
 
 	if (!parser_expect(parser, TOKEN_SEMICOLON))
 	{
-		parser_report_error(&parser->lexer->previous_token.source_span,
-		                    "Expected a '" YELLOW_HIGHLIGHT(";") "' after the '" YELLOW_HIGHLIGHT("%s") "'!",
-		                    parser->lexer->previous_token.lexeme);
 		return &invalid_statement;
 	}
 

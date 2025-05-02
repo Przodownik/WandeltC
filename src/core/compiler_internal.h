@@ -128,12 +128,30 @@ typedef struct _Statement
 	};
 } Statement;
 
+typedef enum _BinaryOperator
+{
+	BINARY_OPERATOR_INVALID  = 0,
+	BINARY_OPERATOR_ADD      = TOKEN_PLUS,
+	BINARY_OPERATOR_SUBTRACT = TOKEN_MINUS,
+	BINARY_OPERATOR_MULTIPLY = TOKEN_STAR,
+	BINARY_OPERATOR_DIVIDE   = TOKEN_SLASH
+} BinaryOperator;
+
+const char* binary_operator_to_string(BinaryOperator op);
+
+typedef enum _UnaryOperator
+{
+	UNARY_OPERATOR_INVALID = 0,
+	UNARY_OPERATOR_NEGATE,
+} UnaryOperator;
+
 typedef enum _ExpressionKind
 {
 	EXPRESSION_INVALID = 0,
 	EXPRESSION_LITERAL,
 	EXPRESSION_BINARY,
 	EXPRESSION_UNARY,
+	EXPRESSION_GROUP,
 } ExpressionKind;
 
 typedef struct _LiteralExpression
@@ -147,16 +165,21 @@ typedef struct _LiteralExpression
 
 typedef struct _BinaryExpression
 {
-	// BinaryOperator operator;
+	BinaryOperator operator;
 	Expression* left;
 	Expression* right;
 } BinaryExpression;
 
 typedef struct _UnaryExpression
 {
-	// UnaryOperator operator;
+	UnaryOperator operator;
 	Expression* operand;
 } UnaryExpression;
+
+typedef struct _GroupedExpression
+{
+	Expression* expression;
+} GroupedExpression;
 
 typedef struct _Expression
 {
@@ -167,6 +190,7 @@ typedef struct _Expression
 		LiteralExpression literal;
 		BinaryExpression binary;
 		UnaryExpression unary;
+		GroupedExpression group;
 	};
 } Expression;
 

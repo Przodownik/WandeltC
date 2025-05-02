@@ -120,8 +120,6 @@ void diagnostics_print_at_location(SourceSpan* span, const char* message, Diagno
 	default:
 		ASSERT(false, "Invalid print type");
 	}
-
-	ETRACE("\n");
 }
 
 void diagnostics_vnote_along_span(SourceSpan* location, const char* message, va_list args)

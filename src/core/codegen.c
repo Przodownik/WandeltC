@@ -15,15 +15,56 @@ typedef struct _CodegenContext
 	LLVMBuilderRef llvm_builder;
 } CodegenContext;
 
+LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression);
+
+LLVMValueRef codegen_emit_literal_expression(CodegenContext* context, Expression* expression)
+{
+	switch (expression->literal.type->kind)
+	{
+	case TYPE_KIND_INT_32:
+		return LLVMConstInt(LLVMInt32TypeInContext(context->llvm_context), expression->literal.int_value, false);
+	}
+
+	ASSERT(false, "Invalid literal type: %d\n", expression->literal.type->kind);
+}
+
+LLVMValueRef codegen_emit_binary_expression(CodegenContext* context, Expression* expression)
+{
+	LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
+	LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
+
+	switch (expression->binary.operator)
+	{
+	case BINARY_OPERATOR_ADD:
+		return LLVMBuildAdd(context->llvm_builder, lhs, rhs, "add");
+	case BINARY_OPERATOR_SUBTRACT:
+		return LLVMBuildSub(context->llvm_builder, lhs, rhs, "sub");
+	case BINARY_OPERATOR_MULTIPLY:
+		return LLVMBuildMul(context->llvm_builder, lhs, rhs, "mul");
+	case BINARY_OPERATOR_DIVIDE:
+		return LLVMBuildSDiv(context->llvm_builder, lhs, rhs, "div");
+	default:
+		break;
+	}
+
+	ASSERT(false, "Invalid binary operator: %d\n", expression->binary.operator);
+}
+
 LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression)
 {
 	switch (expression->kind)
 	{
 	case EXPRESSION_LITERAL:
-		return LLVMConstInt(LLVMInt32TypeInContext(context->llvm_context), expression->literal.int_value, false);
+		return codegen_emit_literal_expression(context, expression);
+	case EXPRESSION_GROUP:
+		return codegen_emit_expression(context, expression->group.expression);
+	case EXPRESSION_BINARY:
+		return codegen_emit_binary_expression(context, expression);
 	default:
 		break;
 	}
+
+	ASSERT(false, "Invalid expression kind: %d\n", expression->kind);
 }
 
 void codegen_emit_return_statement(CodegenContext* context, Statement* statement)
@@ -163,7 +204,7 @@ void codegen_generate(CompilerBuildOptions* build_options)
 
 	// output to file output.ll (temporary)
 	FILE* ir_file = fopen("output.ll", "w+");
-	if (ir_file == NULL)
+	if (ir_file == nullptr)
 	{
 		ERROR("Could not open file output.ll for writing.\n");
 		return;
