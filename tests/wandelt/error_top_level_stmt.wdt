@@ -1,0 +1,16 @@
+int32 main()
+{
+    return 234;
+}
+
+/*
+#expectfail
+1| int32 main()
+   ^^^^^
+2| {
+3|     return 234;
+4| }
+5|
+Error in file (wandelt\error_top_level_stmt.wdt) in row 1 in column 1
+Unexpected token 'int32' found! A top-level statement was expected e.g. a function or a variable declaration!
+*/
