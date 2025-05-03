@@ -52,10 +52,10 @@ def run_test(index, total, file_path):
     expected_fail = extract_expected_fail(content)
 
     if expected_ir is None and expected_fail is None:
-        print(f"{Fore.YELLOW}[SKIP]{Style.RESET_ALL} No #expect or #expectfail block in {file_path.name}")
+        print(f"{Fore.YELLOW}[SKIP]{Style.RESET_ALL} No #expect or #expectfail block in {file_path}")
         return "skip"
 
-    print(f"{Style.BRIGHT}[TEST] {index}/{total} {file_path.name}{Style.RESET_ALL}")
+    print(f"{Style.BRIGHT}[TEST] {index}/{total} {file_path}{Style.RESET_ALL}")
 
     try:
         result = subprocess.run(
@@ -66,7 +66,7 @@ def run_test(index, total, file_path):
             timeout=10
         )
     except subprocess.TimeoutExpired:
-        print(f"{Fore.RED}[TIMEOUT]{Style.RESET_ALL} {file_path.name}")
+        print(f"{Fore.RED}[TIMEOUT]{Style.RESET_ALL} {file_path}")
         return "fail"
 
     elapsed_ms = (time.perf_counter() - start_time) * 1000
@@ -79,11 +79,11 @@ def run_test(index, total, file_path):
             expected_clean = normalize_stderr(expected_fail)
 
             if expected_clean == stderr_clean:
-                print(f"{Fore.GREEN}[PASS]{Style.RESET_ALL} {file_path.name} (expected failure matched) "
+                print(f"{Fore.GREEN}[PASS]{Style.RESET_ALL} {file_path} (expected failure matched) "
                       f"{Style.DIM}({elapsed_ms:.1f} ms){Style.RESET_ALL}")
                 return "pass"
             else:
-                print(f"{Fore.RED}[FAIL]{Style.RESET_ALL} {file_path.name} - Expected failure output mismatch.")
+                print(f"{Fore.RED}[FAIL]{Style.RESET_ALL} {file_path} - Expected failure output mismatch.")
                 print(f"{Fore.MAGENTA}---- Expected stderr ----{Style.RESET_ALL}")
                 print(expected_clean)
                 print(f"{Fore.MAGENTA}---- Actual stderr ----{Style.RESET_ALL}")
@@ -110,13 +110,13 @@ def run_test(index, total, file_path):
                 print(f"\n{Style.DIM}Time: {elapsed_ms:.1f} ms{Style.RESET_ALL}")
                 return "fail"
 
-        print(f"{Fore.RED}[FAIL]{Style.RESET_ALL} {file_path.name} - Compilation failed (non-zero exit code).")
+        print(f"{Fore.RED}[FAIL]{Style.RESET_ALL} {file_path} - Compilation failed (non-zero exit code).")
         print("\n".join(line for line in result.stderr.splitlines() if line.strip()))
         print(f"{Style.DIM}Time: {elapsed_ms:.1f} ms{Style.RESET_ALL}")
         return "fail"
 
     if not os.path.exists(OUTPUT_LL_PATH):
-        print(f"{Fore.RED}[FAIL]{Style.RESET_ALL} {file_path.name} - {OUTPUT_LL_PATH} not found.")
+        print(f"{Fore.RED}[FAIL]{Style.RESET_ALL} {file_path} - {OUTPUT_LL_PATH} not found.")
         print(f"{Style.DIM}Time: {elapsed_ms:.1f} ms{Style.RESET_ALL}")
         return "fail"
 
@@ -127,11 +127,11 @@ def run_test(index, total, file_path):
     actual_ir_clean = normalize_ir(actual_ir)
 
     if actual_ir_clean == expected_ir_clean:
-        print(f"{Fore.GREEN}[PASS]{Style.RESET_ALL} {file_path.name} "
+        print(f"{Fore.GREEN}[PASS]{Style.RESET_ALL} {file_path} "
               f"{Style.DIM}({elapsed_ms:.1f} ms){Style.RESET_ALL}")
         return "pass"
     else:
-        print(f"{Fore.RED}[FAIL]{Style.RESET_ALL} {file_path.name} - Output mismatch.")
+        print(f"{Fore.RED}[FAIL]{Style.RESET_ALL} {file_path} - Output mismatch.")
         print(f"{Fore.CYAN}---- STDERR ----{Style.RESET_ALL}")
         print("\n".join(line for line in result.stderr.splitlines() if line.strip()))
 

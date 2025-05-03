@@ -1,0 +1,22 @@
+fn int32 main()
+{
+    int32 a = 2400;
+
+    return a;
+}
+
+/*
+#expect
+; ModuleID = 'module:core'
+source_filename = "main.wdt"
+target datalayout = ""
+target triple = ""
+
+define i32 @main() {
+entry:
+  %a = alloca i32, align 4
+  store i32 2400, ptr %a, align 4
+  %a1 = load i32, ptr %a, align 4
+  ret i32 %a1
+}
+*/

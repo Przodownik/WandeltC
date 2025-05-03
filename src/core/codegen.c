@@ -16,6 +16,7 @@ typedef struct _CodegenContext
 } CodegenContext;
 
 LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression);
+void codegen_emit_statement(CodegenContext* context, Statement* statement);
 
 LLVMValueRef codegen_emit_literal_expression(CodegenContext* context, Expression* expression)
 {
@@ -50,6 +51,8 @@ LLVMValueRef codegen_emit_binary_expression(CodegenContext* context, Expression*
 	ASSERT(false, "Invalid binary operator: %d\n", expression->binary.operator);
 }
 
+static LLVMValueRef test_variable;
+
 LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression)
 {
 	switch (expression->kind)
@@ -60,6 +63,10 @@ LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expres
 		return codegen_emit_expression(context, expression->group.expression);
 	case EXPRESSION_BINARY:
 		return codegen_emit_binary_expression(context, expression);
+	case EXPRESSION_IDENTIFIER: {
+		return LLVMBuildLoad2(context->llvm_builder, LLVMInt32TypeInContext(context->llvm_context), test_variable,
+		                      expression->identifier.name);
+	}
 	default:
 		break;
 	}
@@ -73,10 +80,52 @@ void codegen_emit_return_statement(CodegenContext* context, Statement* statement
 	LLVMBuildRet(context->llvm_builder, value);
 }
 
+void codegen_emit_variable_declaration(CodegenContext* context, Statement* statement)
+{
+	Declaration* declaration = statement->declaration.declaration;
+	LLVMTypeRef int32_type   = LLVMIntTypeInContext(context->llvm_context, 32);
+	LLVMValueRef variable    = LLVMBuildAlloca(context->llvm_builder, int32_type, declaration->variable.name);
+	LLVMValueRef value       = codegen_emit_expression(context, declaration->variable.initializer);
+	LLVMBuildStore(context->llvm_builder, value, variable);
+
+	test_variable = variable;
+}
+
+void codegen_emit_compound_statement(CodegenContext* context, Statement* statement)
+{
+	Statement* current = statement;
+
+	while (current != nullptr)
+	{
+		codegen_emit_statement(context, current);
+		current = current->next;
+	}
+}
+
 void codegen_emit_statement(CodegenContext* context, Statement* statement)
 {
 	switch (statement->type)
 	{
+	case STATEMENT_DECLARATION: {
+		Declaration* declaration = statement->declaration.declaration;
+		switch (declaration->kind)
+		{
+		case DECLARATION_VARIABLE:
+			codegen_emit_variable_declaration(context, statement);
+			break;
+		case DECLARATION_FUNCTION:
+			ASSERT(false, "Not top level function declarations are not supported.\n");
+			break;
+		default:
+			break;
+		}
+		break;
+	}
+
+	case STATEMENT_COMPOUND:
+		codegen_emit_compound_statement(context, statement->compound.first);
+		break;
+
 	case STATEMENT_RETURN:
 		codegen_emit_return_statement(context, statement);
 		break;
@@ -103,13 +152,7 @@ void codegen_emit_function(CodegenContext* context, Declaration* declaration)
 	LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(context->llvm_context, declaration->handle, "entry");
 	LLVMPositionBuilderAtEnd(context->llvm_builder, entry);
 
-	const Statement* body_statement = declaration->function.body->compound.first;
-
-	while (body_statement != nullptr)
-	{
-		codegen_emit_statement(context, body_statement);
-		body_statement = body_statement->next;
-	}
+	codegen_emit_compound_statement(context, declaration->function.body->compound.first);
 }
 
 typedef struct _PlatformTarget
@@ -194,6 +237,13 @@ void codegen_generate(CompilerBuildOptions* build_options)
 	                                &error))
 	{
 		ERROR("Could not emit object file: %s\n", err);
+		return;
+	}
+
+	if (LLVMTargetMachineEmitToFile(platform_target.machine_ref, context.llvm_module, "main.asm", LLVMAssemblyFile,
+	                                &error))
+	{
+		ERROR("Could not emit asm file: %s\n", err);
 		return;
 	}
 

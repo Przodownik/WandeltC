@@ -15,6 +15,14 @@ extern Context global_context;               // from compiler_internal.h
 	if (!x)                \
 	return false
 
+#define TOKEN_BINARY_OPERATORS \
+	case TOKEN_STAR:           \
+	case TOKEN_SLASH:          \
+	case TOKEN_PLUS:           \
+	case TOKEN_MINUS
+
+#define TOKEN_TYPE_KINDS case TOKEN_INT32_KEYWORD
+
 static Declaration invalid_declaration = {.kind = DECLARATION_INVALID};
 static Statement invalid_statement     = {.type = DECLARATION_INVALID};
 static Expression invalid_expression   = {.kind = EXPRESSION_INVALID};
@@ -107,12 +115,6 @@ void parser_report_error(SourceSpan* location, const char* message, ...)
 	va_end(list);
 }
 
-#define TOKEN_BINARY_OPERATORS \
-	case TOKEN_STAR:           \
-	case TOKEN_SLASH:          \
-	case TOKEN_PLUS:           \
-	case TOKEN_MINUS
-
 int8 parser_get_token_precedence(TokenType type)
 {
 	switch (type)
@@ -158,10 +160,10 @@ bool parse_identifier(Parser* parser, const char** identifier)
 }
 
 // <type>
-bool parse_type(Parser* parser, Type* type)
+bool parse_type(Parser* parser, Type** type)
 {
-	TypeKind* kind = (TypeKind*)hash_map_get_value(&type_table, parser->lexer->current_token.lexeme);
-	if (kind == nullptr)
+	Type* mapped_type = (Type*)hash_map_get_value(&type_table, parser->lexer->current_token.lexeme);
+	if (mapped_type == nullptr)
 	{
 		parser_report_error(
 		    &parser->lexer->current_token.source_span,
@@ -172,7 +174,7 @@ bool parse_type(Parser* parser, Type* type)
 		return false;
 	}
 
-	type->kind = *kind;
+	*type = mapped_type;
 
 	parser_advance(parser); // consume the type
 
@@ -256,6 +258,12 @@ Expression* parse_primary_expression(Parser* parser)
 		return parse_literal_expression(parser);
 	case TOKEN_OPEN_PAREN:
 		return parse_grouped_expression(parser);
+	case TOKEN_IDENTIFIER:
+		Expression* expression      = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+		expression->kind            = EXPRESSION_IDENTIFIER;
+		expression->identifier.name = parser->lexer->current_token.lexeme;
+		parser_advance(parser); // consume the identifier
+		return expression;
 	default:
 		parser_report_error(
 		    &parser->lexer->current_token.source_span,
@@ -328,9 +336,40 @@ Statement* parse_return_statement(Parser* parser)
 		return &invalid_statement;
 
 	if (!parser_expect(parser, TOKEN_SEMICOLON))
-	{
 		return &invalid_statement;
-	}
+
+	parser_advance(parser); // consume ;
+
+	return statement;
+}
+
+Statement* parse_variable_declaration_statement(Parser* parser)
+{
+	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
+	statement->type      = STATEMENT_DECLARATION;
+
+	statement->declaration.declaration       = arena_allocator_allocate(&declaration_allocator, sizeof(Declaration));
+	statement->declaration.declaration->kind = DECLARATION_VARIABLE;
+
+	if (!parse_type(parser, &statement->declaration.declaration->variable.type))
+		return &invalid_statement;
+
+	if (!parser_expect(parser, TOKEN_IDENTIFIER))
+		return &invalid_statement;
+
+	statement->declaration.declaration->variable.name = parser->lexer->current_token.lexeme;
+
+	parser_advance(parser); // consume the identifier
+
+	if (!parser_expect(parser, TOKEN_EQUAL))
+		return &invalid_statement;
+
+	parser_advance(parser); // consume the equal sign
+
+	statement->declaration.declaration->variable.initializer = parse_expression(parser);
+
+	if (!parser_expect(parser, TOKEN_SEMICOLON))
+		return &invalid_statement;
 
 	parser_advance(parser); // consume ;
 
@@ -339,15 +378,21 @@ Statement* parse_return_statement(Parser* parser)
 
 Statement* parse_statement(Parser* parser)
 {
-	// TRACE("Type %s \n", parser->lexer->current_token.lexeme);
 	switch (parser->lexer->current_token.type)
 	{
+	TOKEN_TYPE_KINDS:
+		return parse_variable_declaration_statement(parser);
+
 	case TOKEN_RETURN_KEYWORD:
 		return parse_return_statement(parser);
 
+	case TOKEN_OPEN_BRACE:
+		return parse_compound_statement(parser);
+
 	case TOKEN_EOF:
-		parser_report_error(&parser->lexer->current_token.source_span,
-		                    "Reached the end of the file when expecting a statement.");
+		parser_report_error(
+		    &parser->lexer->current_token.source_span,
+		    "Reached the end of the file when expecting a statement. Did you forget to close a scope with '}'?");
 
 		return &invalid_statement;
 	default:

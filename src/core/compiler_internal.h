@@ -65,11 +65,12 @@ typedef enum _DeclKind
 {
 	DECLARATION_INVALID = 0,
 	DECLARATION_FUNCTION,
+	DECLARATION_VARIABLE
 } DeclKind;
 
 typedef struct _FunctionSignature
 {
-	Type return_type;
+	Type* return_type;
 	const char* name;
 	Declaration** parameters;
 } FunctionSignature;
@@ -80,6 +81,13 @@ typedef struct _FunctionDeclaration
 	Statement* body;
 } FunctionDeclaration;
 
+typedef struct _VariableDeclaration
+{
+	Type* type;
+	const char* name;
+	Expression* initializer;
+} VariableDeclaration;
+
 typedef struct _Declaration
 {
 	DeclKind kind;
@@ -89,6 +97,7 @@ typedef struct _Declaration
 
 	union {
 		FunctionDeclaration function;
+		VariableDeclaration variable;
 	};
 } Declaration;
 
@@ -152,6 +161,7 @@ typedef enum _ExpressionKind
 	EXPRESSION_BINARY,
 	EXPRESSION_UNARY,
 	EXPRESSION_GROUP,
+	EXPRESSION_IDENTIFIER,
 } ExpressionKind;
 
 typedef struct _LiteralExpression
@@ -181,6 +191,11 @@ typedef struct _GroupedExpression
 	Expression* expression;
 } GroupedExpression;
 
+typedef struct _IdentifierExpression
+{
+	const char* name;
+} IdentifierExpression;
+
 typedef struct _Expression
 {
 	ExpressionKind kind;
@@ -191,6 +206,7 @@ typedef struct _Expression
 		BinaryExpression binary;
 		UnaryExpression unary;
 		GroupedExpression group;
+		IdentifierExpression identifier;
 	};
 } Expression;
 

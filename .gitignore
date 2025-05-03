@@ -6,3 +6,5 @@ build
 *.obj
 *.exe
 *.ll
+*.asm
+*.json

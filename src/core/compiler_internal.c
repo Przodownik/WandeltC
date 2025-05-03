@@ -2,6 +2,8 @@
 
 #include "vendor/cJSON/cJSON.h"
 
+static Type int32_type = {.kind = TYPE_KIND_INT_32};
+
 void compiler_internal_initialize(void)
 {
 	arena_allocator_create(&string_allocator, "STRING allocator", MB(1));
@@ -16,8 +18,8 @@ void compiler_internal_initialize(void)
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_PUBLIC_KEYWORD), TOKEN_PUBLIC_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_PRIVATE_KEYWORD), TOKEN_PRIVATE_KEYWORD);
 
-	type_table = hash_map_create(sizeof(TypeKind), TYPE_KIND_COUNT);
-	hash_map_set(&type_table, "int32", TYPE_KIND_INT_32);
+	type_table = hash_map_create(sizeof(Type*), TYPE_KIND_COUNT);
+	hash_map_set(&type_table, "int32", &int32_type);
 
 	global_context.functions_declarations = vector_create(10, sizeof(Declaration*));
 }
@@ -59,6 +61,8 @@ const char* binary_operator_to_string(BinaryOperator op)
 	}
 }
 
+void emit_declaration_json(Declaration* decl, cJSON* element);
+
 void emit_expression_json(Expression* expr, cJSON* parent)
 {
 	if (!expr)
@@ -93,6 +97,10 @@ void emit_expression_json(Expression* expr, cJSON* parent)
 		emit_expression_json(expr->binary.right, right);
 		cJSON_AddItemToObject(obj, "left", left);
 		cJSON_AddItemToObject(obj, "right", right);
+		break;
+	case EXPRESSION_IDENTIFIER:
+		cJSON_AddStringToObject(obj, "kind", "identifier");
+		cJSON_AddStringToObject(obj, "name", expr->identifier.name);
 		break;
 
 	default:
@@ -136,6 +144,11 @@ void emit_statement_json(Statement* stmt, cJSON* array)
 		break;
 	}
 
+	case STATEMENT_DECLARATION: {
+		emit_declaration_json(stmt->declaration.declaration, obj);
+		break;
+	}
+
 	default:
 		cJSON_AddStringToObject(obj, "type", "unknown");
 		break;
@@ -148,18 +161,30 @@ void emit_declaration_json(Declaration* decl, cJSON* element)
 {
 	ASSERT(decl != NULL, "Declaration is null!");
 
-	cJSON* json_decl = cJSON_CreateObject();
-	cJSON_AddStringToObject(json_decl, "kind", decl->kind == DECLARATION_FUNCTION ? "function" : "unknown");
+	switch (decl->kind)
+	{
+	case DECLARATION_FUNCTION:
+		cJSON* json_decl = cJSON_CreateObject();
+		cJSON_AddStringToObject(json_decl, "kind", "function");
+		cJSON_AddStringToObject(json_decl, "name", decl->function.signature.name);
+		cJSON* body_array = cJSON_CreateArray();
+		emit_statement_json(decl->function.body, body_array);
+		cJSON_AddItemToObject(json_decl, "body", body_array);
+		cJSON_AddItemToArray(element, json_decl);
+		break;
 
-	cJSON* data = cJSON_CreateObject();
-	cJSON_AddStringToObject(data, "name", decl->function.signature.name);
+	case DECLARATION_VARIABLE:
+		cJSON_AddStringToObject(element, "kind", "variable");
+		cJSON_AddStringToObject(element, "name", decl->variable.name);
+		cJSON* initializer = cJSON_CreateObject();
+		emit_expression_json(decl->variable.initializer, initializer);
+		cJSON_AddItemToObject(element, "initializer", initializer);
+		break;
 
-	cJSON* body_array = cJSON_CreateArray();
-	emit_statement_json(decl->function.body, body_array);
-	cJSON_AddItemToObject(data, "body", body_array);
-
-	cJSON_AddItemToObject(json_decl, "data", data);
-	cJSON_AddItemToArray(element, json_decl);
+	default:
+		cJSON_AddStringToObject(element, "kind", "unknown");
+		cJSON_AddNullToObject(element, "value");
+	}
 }
 
 void global_context_emit_functions_json(Context* context, cJSON* element)
