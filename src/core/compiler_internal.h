@@ -73,6 +73,7 @@ typedef struct _FunctionSignature
 	Type* return_type;
 	const char* name;
 	Declaration** parameters;
+	SourceSpan source_span;
 } FunctionSignature;
 
 typedef struct _FunctionDeclaration
@@ -154,6 +155,16 @@ typedef enum _UnaryOperator
 	UNARY_OPERATOR_NEGATE,
 } UnaryOperator;
 
+const char* unary_operator_to_string(UnaryOperator op);
+
+typedef enum _AssignOperator
+{
+	ASSIGN_OPERATOR_INVALID = 0,
+	ASSIGN_OPERATOR_ASSIGN,
+} AssignOperator;
+
+const char* assign_operator_to_string(AssignOperator op);
+
 typedef enum _ExpressionKind
 {
 	EXPRESSION_INVALID = 0,
@@ -162,6 +173,7 @@ typedef enum _ExpressionKind
 	EXPRESSION_UNARY,
 	EXPRESSION_GROUP,
 	EXPRESSION_IDENTIFIER,
+	EXPRESSION_ASSIGN,
 } ExpressionKind;
 
 typedef struct _LiteralExpression
@@ -197,6 +209,13 @@ typedef struct _IdentifierExpression
 	Declaration* refered; // declaration the identifier refers to
 } IdentifierExpression;
 
+typedef struct
+{
+	Expression* left;
+	Expression* right;
+	AssignOperator operator;
+} AssignExpression;
+
 typedef struct _Expression
 {
 	ExpressionKind kind;
@@ -208,6 +227,7 @@ typedef struct _Expression
 		UnaryExpression unary;
 		GroupedExpression group;
 		IdentifierExpression identifier;
+		AssignExpression assign;
 	};
 } Expression;
 

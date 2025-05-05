@@ -7,4 +7,4 @@
 
 #include "core/compiler_internal.h"
 
-void sema_analyse_parsed_context(void);
+void sema_analyse_parsed_context(Context* context);

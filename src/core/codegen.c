@@ -24,6 +24,8 @@ LLVMValueRef codegen_emit_literal_expression(CodegenContext* context, Expression
 	{
 	case TYPE_KIND_INT_32:
 		return LLVMConstInt(LLVMInt32TypeInContext(context->llvm_context), expression->literal.int_value, false);
+	default:
+		break;
 	}
 
 	ASSERT(false, "Invalid literal type: %d\n", expression->literal.type->kind);
@@ -51,8 +53,6 @@ LLVMValueRef codegen_emit_binary_expression(CodegenContext* context, Expression*
 	ASSERT(false, "Invalid binary operator: %d\n", expression->binary.operator);
 }
 
-static LLVMValueRef test_variable;
-
 LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression)
 {
 	switch (expression->kind)
@@ -64,8 +64,8 @@ LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expres
 	case EXPRESSION_BINARY:
 		return codegen_emit_binary_expression(context, expression);
 	case EXPRESSION_IDENTIFIER: {
-		return LLVMBuildLoad2(context->llvm_builder, LLVMInt32TypeInContext(context->llvm_context), test_variable,
-		                      expression->identifier.name);
+		return LLVMBuildLoad2(context->llvm_builder, LLVMInt32TypeInContext(context->llvm_context),
+		                      expression->identifier.refered->handle, expression->identifier.name);
 	}
 	default:
 		break;
@@ -88,7 +88,7 @@ void codegen_emit_variable_declaration(CodegenContext* context, Statement* state
 	LLVMValueRef value       = codegen_emit_expression(context, declaration->variable.initializer);
 	LLVMBuildStore(context->llvm_builder, value, variable);
 
-	test_variable = variable;
+	declaration->handle = variable;
 }
 
 void codegen_emit_compound_statement(CodegenContext* context, Statement* statement)
@@ -164,7 +164,7 @@ typedef struct _PlatformTarget
 	LLVMTargetDataRef target_data_ref;
 } PlatformTarget;
 
-PlatformTarget codegen_initialize_target()
+PlatformTarget codegen_initialize_target(void)
 {
 	LLVMInitializeX86AsmParser();
 	LLVMInitializeX86AsmPrinter();

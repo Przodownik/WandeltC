@@ -1,0 +1,33 @@
+fn int32 main()
+{
+    int32 a = 2500;
+
+    return (a + a) * 4;
+}
+
+fn int32 main()
+{
+    int32 a = 2500;
+
+    return (a + a) * 4;
+}
+
+/*
+#expectfail
+ 6| }
+ 7|
+ 8| fn int32 main()
+    ^^^^^^^^^^^^^^^
+ 9| {
+10|     int32 a = 2500;
+Warning in file (wandelt\errors\function_redefinition.wdt) in row 8 in column 1
+Function 'main' is being redefined!
+
+
+1| fn int32 main()
+   ^^^^^^^^^^^^^^^
+2| {
+3|     int32 a = 2500;
+Error in file (wandelt\errors\function_redefinition.wdt) in row 1 in column 1
+Function 'main' was already declared here!
+*/

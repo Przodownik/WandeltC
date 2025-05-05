@@ -51,6 +51,15 @@ void parser_advance(Parser* parser)
 		return;
 }
 
+Token parser_get_token_and_advance(Parser* parser)
+{
+	Token token = parser->lexer->current_token;
+
+	parser_advance(parser);
+
+	return token;
+}
+
 bool parser_expect(Parser* parser, TokenType expected_type)
 {
 	Token token = parser->lexer->current_token;
@@ -200,11 +209,15 @@ bool parse_parameters(Parser* parser, Declaration** parameters)
 // fn <type> <identifier>(<type> <identifier>, ...)
 bool parse_function_signature(Parser* parser, FunctionSignature* signature)
 {
-	parser_advance(parser); // consume fn
+	Token function_token = parser_get_token_and_advance(parser); // consume fn
 
 	OK_OR_RET_FALSE(parse_type(parser, &signature->return_type));
 	OK_OR_RET_FALSE(parse_identifier(parser, &signature->name));
 	OK_OR_RET_FALSE(parse_parameters(parser, signature->parameters));
+
+	Token close_paren_token = parser->lexer->previous_token;
+
+	signature->source_span = extend_span_with_token(function_token.source_span, close_paren_token.source_span);
 
 	return true;
 }
@@ -223,6 +236,7 @@ Expression* parse_literal_expression(Parser* parser)
 	expression->kind              = EXPRESSION_LITERAL;
 	expression->literal.int_value = atoi(parser->lexer->current_token.lexeme);
 	expression->literal.type      = &int32_type; // TODO add type deduction
+	expression->source_span       = parser->lexer->current_token.source_span;
 
 	parser_advance(parser); // consume the number
 
@@ -233,7 +247,7 @@ Expression* parse_grouped_expression(Parser* parser)
 {
 	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_OPEN_PAREN));
 
-	parser_advance(parser); // consume (
+	Token open_paren_token = parser_get_token_and_advance(parser); // consume (
 
 	Expression* expression       = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
 	expression->kind             = EXPRESSION_GROUP;
@@ -245,7 +259,9 @@ Expression* parse_grouped_expression(Parser* parser)
 	if (!parser_expect(parser, TOKEN_CLOSE_PAREN))
 		return &invalid_expression;
 
-	parser_advance(parser); // consume )
+	Token close_paren_token = parser_get_token_and_advance(parser); // consume )
+
+	expression->source_span = extend_span_with_token(open_paren_token.source_span, close_paren_token.source_span);
 
 	return expression;
 }
@@ -262,7 +278,10 @@ Expression* parse_primary_expression(Parser* parser)
 		Expression* expression      = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
 		expression->kind            = EXPRESSION_IDENTIFIER;
 		expression->identifier.name = parser->lexer->current_token.lexeme;
+		expression->source_span     = parser->lexer->current_token.source_span;
+
 		parser_advance(parser); // consume the identifier
+
 		return expression;
 	default:
 		parser_report_error(
@@ -308,6 +327,7 @@ Expression* parse_expression_rhs(Parser* parser, Expression* lhs, int8 min_prece
 		binary->binary.left = lhs;
 		binary->binary.operator= operator;
 		binary->binary.right = rhs;
+		binary->source_span  = extend_span_with_token(lhs->source_span, rhs->source_span);
 
 		// Continue with the binary expression as the new left-hand side
 		lhs = binary;
@@ -326,7 +346,7 @@ Expression* parse_expression(Parser* parser)
 
 Statement* parse_return_statement(Parser* parser)
 {
-	parser_advance(parser); // consume return
+	Token return_token = parser_get_token_and_advance(parser); // consume return
 
 	Statement* statement          = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
 	statement->type               = STATEMENT_RETURN;
@@ -338,13 +358,17 @@ Statement* parse_return_statement(Parser* parser)
 	if (!parser_expect(parser, TOKEN_SEMICOLON))
 		return &invalid_statement;
 
-	parser_advance(parser); // consume ;
+	Token semicolon_token = parser_get_token_and_advance(parser); // consume ;
+
+	statement->source_span = extend_span_with_token(return_token.source_span, semicolon_token.source_span);
 
 	return statement;
 }
 
 Statement* parse_variable_declaration_statement(Parser* parser)
 {
+	Token type_token = parser->lexer->current_token;
+
 	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
 	statement->type      = STATEMENT_DECLARATION;
 
@@ -371,7 +395,9 @@ Statement* parse_variable_declaration_statement(Parser* parser)
 	if (!parser_expect(parser, TOKEN_SEMICOLON))
 		return &invalid_statement;
 
-	parser_advance(parser); // consume ;
+	Token semicolon_token = parser_get_token_and_advance(parser); // consume ;
+
+	statement->source_span = extend_span_with_token(type_token.source_span, semicolon_token.source_span);
 
 	return statement;
 }
@@ -408,7 +434,7 @@ Statement* parse_compound_statement(Parser* parser)
 	if (!parser_expect(parser, TOKEN_OPEN_BRACE))
 		return &invalid_statement;
 
-	parser_advance(parser); // consume {
+	Token open_brace_token = parser_get_token_and_advance(parser); // consume {
 
 	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
 	statement->type      = STATEMENT_COMPOUND;
@@ -424,6 +450,9 @@ Statement* parse_compound_statement(Parser* parser)
 		*last_ptr = inner;
 		last_ptr  = &inner->next;
 	}
+
+	Token close_brace_token = parser->lexer->previous_token;
+	statement->source_span  = extend_span_with_token(open_brace_token.source_span, close_brace_token.source_span);
 
 	return statement;
 }
@@ -448,6 +477,8 @@ Declaration* parse_top_level_statement(Parser* parser)
 			return &invalid_declaration;
 
 		new_declaration->function.body = body;
+		new_declaration->source_span =
+		    extend_span_with_token(new_declaration->function.signature.source_span, body->source_span);
 
 		vector_push(parser->context->functions_declarations, new_declaration);
 

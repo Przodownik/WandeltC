@@ -30,7 +30,7 @@ void parser_report_error(SourceSpan* location, const char* message, ...);
 
 bool parse_identifier(Parser* parser, const char** identifier);
 
-bool parse_type(Parser* parser, Type* type);
+bool parse_type(Parser* parser, Type** type);
 
 bool parse_parameters(Parser* parser, Declaration** parameters);
 

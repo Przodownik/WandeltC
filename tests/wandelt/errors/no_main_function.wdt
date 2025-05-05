@@ -1,0 +1,11 @@
+fn int32 main2()
+{
+    int32 a = 2500;
+
+    return (a + a) * 4;
+}
+
+/*
+#expectfail
+No main function found, please define a main function!
+*/

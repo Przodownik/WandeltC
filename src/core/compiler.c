@@ -71,7 +71,7 @@ void compiler_compile(Compiler* compiler)
 {
 	compiler_parse(compiler);
 
-	sema_analyse_parsed_context(global_context);
+	sema_analyse_parsed_context(&global_context);
 
 	if (global_context.error_count > 0)
 	{

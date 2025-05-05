@@ -61,6 +61,28 @@ const char* binary_operator_to_string(BinaryOperator op)
 	}
 }
 
+const char* unary_operator_to_string(UnaryOperator op)
+{
+	switch (op)
+	{
+	case UNARY_OPERATOR_NEGATE:
+		return "-";
+	default:
+		return "unknown";
+	}
+}
+
+const char* assign_operator_to_string(AssignOperator op)
+{
+	switch (op)
+	{
+	case ASSIGN_OPERATOR_ASSIGN:
+		return "=";
+	default:
+		return "unknown";
+	}
+}
+
 void emit_declaration_json(Declaration* decl, cJSON* element);
 
 void emit_expression_json(Expression* expr, cJSON* parent)
