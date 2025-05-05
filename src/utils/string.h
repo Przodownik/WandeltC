@@ -13,6 +13,7 @@ typedef struct _File
 	const char* path;    // Path to the file (relative to the project root)
 	const char* content; // Content of the file
 	uint64 content_size; // Size of the content in bytes
+	uint32 total_rows;   // Number of lines in the file
 } File;
 
 /**

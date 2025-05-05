@@ -30,6 +30,15 @@ File file_create(const char* path)
 
 	fclose(file);
 
+	// Count the number of lines in the file
+	const char* p = buffer;
+	while (*p)
+	{
+		if (*p == '\n')
+			result.total_rows++;
+		p++;
+	}
+
 	return result;
 }
 

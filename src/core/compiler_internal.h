@@ -128,7 +128,7 @@ typedef struct _Statement
 {
 	StatementType type;
 	SourceSpan source_span;
-	Statement* next;
+	Statement* next; // next statement in the compound or null if it's the last one
 
 	union {
 		CompountStatement compound;
@@ -194,6 +194,7 @@ typedef struct _GroupedExpression
 typedef struct _IdentifierExpression
 {
 	const char* name;
+	Declaration* refered; // declaration the identifier refers to
 } IdentifierExpression;
 
 typedef struct _Expression
@@ -231,16 +232,15 @@ void compiler_internal_initialize(void);
 
 void compiler_internal_shutdown(void);
 
-void global_context_emit_functions_json(Context* context, FILE* file);
+void global_context_emit_functions_json(Context* context, void* element);
 void global_context_emit_json_to_file(Context* context, FILE* file);
 void global_context_emit_json(Context* context);
 
-static inline SourceSpan extend_span_with_token(SourceSpan loc, SourceSpan after)
-{
-	if (loc.row != after.row)
-		return loc;
+// Function to get the index of a character in the file content based on row and column
+uint32 get_index_from_position(const File* file, uint32 row, uint32 column);
 
-	loc.length = after.column + after.length - loc.column;
+// Function to get the row and column from an index in the file content
+void get_position_from_index(const File* file, uint32 index, uint32* row, uint32* column);
 
-	return loc;
-}
+// Function to extend a SourceSpan with another SourceSpan, till its end
+SourceSpan extend_span_with_token(SourceSpan loc, SourceSpan after);

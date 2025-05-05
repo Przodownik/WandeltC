@@ -19,33 +19,26 @@ fn int32 ()
    ^^^^^
 2| {
 3|     return 234;
-4| }
-5|
 Error in file (wandelt\errors\top_level_stmt.wdt) in row 1 in column 1
 Unexpected token 'int32' found! A top-level statement was expected e.g. a function or a variable declaration!
 
 
-3|     return 234;
 4| }
 5|
 6| fn main2()
       ^^^^^
 7| {
 8|     return 234;
-9| }
-10|
 Error in file (wandelt\errors\top_level_stmt.wdt) in row 6 in column 4
 Expected a valid return type and received 'main2'. Standard types include void, int32, etc.
 
 
- 8|     return 234;
  9| }
 10|
 11| fn int32 ()
              ^
 12| {
 13|     return 234;
-14| }
 Error in file (wandelt\errors\top_level_stmt.wdt) in row 11 in column 10
 Expected an identifier and received '('
 */

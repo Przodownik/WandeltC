@@ -187,7 +187,7 @@ void emit_declaration_json(Declaration* decl, cJSON* element)
 	}
 }
 
-void global_context_emit_functions_json(Context* context, cJSON* element)
+void global_context_emit_functions_json(Context* context, void* element)
 {
 	uint64 len = vector_get_length(context->functions_declarations);
 	for (uint64 i = 0; i < len; ++i)
@@ -224,4 +224,61 @@ void global_context_emit_json_to_file(Context* context, FILE* file)
 void global_context_emit_json(Context* context)
 {
 	global_context_emit_json_to_file(context, stdout);
+}
+
+uint32 get_index_from_position(const File* file, uint32 row, uint32 column)
+{
+	uint32 index       = 0;
+	uint32 current_row = 1;
+
+	const char* p = file->content;
+
+	while (current_row < row && p < file->content + file->content_size)
+	{
+		if (*p == '\n')
+			current_row++;
+
+		p++;
+		index++;
+	}
+
+	index += column - 1; // Adjust to 1-based column
+
+	return index;
+}
+
+void get_position_from_index(const File* file, uint32 index, uint32* row, uint32* column)
+{
+	uint32 r = 1, c = 1;
+	const char* p = file->content;
+
+	for (uint32 i = 0; i < index && p < file->content + file->content_size; i++, p++)
+	{
+		if (*p == '\n')
+		{
+			r++;
+			c = 1;
+		}
+		else
+		{
+			c++;
+		}
+	}
+
+	*row    = r;
+	*column = c;
+}
+
+SourceSpan extend_span_with_token(SourceSpan loc, SourceSpan after)
+{
+	ASSERT(loc.source_file == after.source_file, "Source files must match");
+
+	uint32 start_index  = get_index_from_position(loc.source_file, loc.row, loc.column);
+	uint32 end_index    = get_index_from_position(after.source_file, after.row, after.column) + after.length;
+	uint32 total_length = end_index - start_index;
+
+	SourceSpan extended = loc;
+	extended.length     = total_length;
+
+	return extended;
 }
