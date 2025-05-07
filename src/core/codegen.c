@@ -31,6 +31,14 @@ LLVMValueRef codegen_emit_literal_expression(CodegenContext* context, Expression
 	ASSERT(false, "Invalid literal type: %d\n", expression->literal.type->kind);
 }
 
+LLVMValueRef codegen_emit_cast_bool_to_int32(CodegenContext* context, LLVMValueRef value)
+{
+	LLVMTypeRef int32_type = LLVMIntTypeInContext(context->llvm_context, 32);
+	LLVMValueRef casted    = LLVMBuildZExt(context->llvm_builder, value, int32_type, "bool.to.int");
+
+	return casted;
+}
+
 LLVMValueRef codegen_emit_binary_expression(CodegenContext* context, Expression* expression)
 {
 	LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
@@ -46,6 +54,12 @@ LLVMValueRef codegen_emit_binary_expression(CodegenContext* context, Expression*
 		return LLVMBuildMul(context->llvm_builder, lhs, rhs, "mul");
 	case BINARY_OPERATOR_DIVIDE:
 		return LLVMBuildSDiv(context->llvm_builder, lhs, rhs, "div");
+	case BINARY_OPERATOR_EQUAL:
+		return codegen_emit_cast_bool_to_int32(context,
+		                                       LLVMBuildICmp(context->llvm_builder, LLVMIntEQ, lhs, rhs, "equal"));
+	case BINARY_OPERATOR_NOT_EQUAL:
+		return codegen_emit_cast_bool_to_int32(context,
+		                                       LLVMBuildICmp(context->llvm_builder, LLVMIntNE, lhs, rhs, "notequal"));
 	default:
 		break;
 	}
