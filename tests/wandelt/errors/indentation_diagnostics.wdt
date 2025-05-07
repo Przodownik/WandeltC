@@ -1,0 +1,27 @@
+			fn int32 main()
+			{
+				return 12;
+			}
+		fn int32 main()
+{
+	return 12;
+}
+
+/*
+#expectfail
+3|                 return 12;
+4|             }
+5|         fn int32 main()
+           ^^^^^^^^^^^^^^^
+6| {
+7|     return 12;
+Warning in file (wandelt\errors\indentation_diagnostics.wdt) in row 5 in column 9
+Function 'main' is being redefined!
+
+1|             fn int32 main()
+               ^^^^^^^^^^^^^^^
+2|             {
+3|                 return 12;
+Error in file (wandelt\errors\indentation_diagnostics.wdt) in row 1 in column 13
+Function 'main' was already declared here!
+*/

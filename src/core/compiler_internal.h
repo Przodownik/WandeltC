@@ -256,11 +256,16 @@ void global_context_emit_functions_json(Context* context, void* element);
 void global_context_emit_json_to_file(Context* context, FILE* file);
 void global_context_emit_json(Context* context);
 
+#define TAB_SIZE 4
+
 // Function to get the index of a character in the file content based on row and column
 uint32 get_index_from_position(const File* file, uint32 row, uint32 column);
 
 // Function to get the row and column from an index in the file content
 void get_position_from_index(const File* file, uint32 index, uint32* row, uint32* column);
+
+// get column with '\t' support
+uint32 get_display_column(const char* line_start, uint32 char_column);
 
 // Function to extend a SourceSpan with another SourceSpan, till its end
 SourceSpan extend_span_with_token(SourceSpan loc, SourceSpan after);

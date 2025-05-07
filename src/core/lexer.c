@@ -157,8 +157,9 @@ bool lexer_make_new_token(Lexer* lexer, TokenType type, const char* lexeme)
 	SourceSpan span;
 	span.source_file = lexer->source_file;
 	span.row         = lexer->current_row_number;
-	span.column      = (uint32)(lexer->lexing_start - lexer->line_start_char) + 1;
-	span.length      = (uint32)(lexer->current_char - lexer->lexing_start);
+	span.column =
+	    get_display_column(lexer->line_start_char, (uint32)(lexer->lexing_start - lexer->line_start_char) + 1);
+	span.length = (uint32)(lexer->current_char - lexer->lexing_start);
 
 	Token token;
 	token.lexeme      = lexeme;
@@ -177,7 +178,8 @@ bool lexer_make_new_verror_token_at_lexing_start(Lexer* lexer, const char* msg, 
 	SourceSpan span;
 	span.source_file = lexer->source_file;
 	span.row         = lexer->current_row_number;
-	span.column      = (uint32)(lexer->lexing_start - lexer->line_start_char) + 1;
+	span.column =
+	    get_display_column(lexer->line_start_char, (uint32)(lexer->lexing_start - lexer->line_start_char) + 1);
 	span.length      = 1;
 
 	va_list list;

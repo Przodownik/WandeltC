@@ -291,6 +291,26 @@ void get_position_from_index(const File* file, uint32 index, uint32* row, uint32
 	*column = c;
 }
 
+uint32 get_display_column(const char* line_start, uint32 char_column)
+{
+	uint32 display_col = 1;
+	const char* p      = line_start;
+
+	for (uint32 i = 1; i < char_column && p < line_start + strlen(line_start); i++)
+	{
+		if (*p == '\t')
+		{
+			display_col += TAB_SIZE; // Tab occupies tab_width columns
+		}
+		else
+		{
+			display_col += 1; // Non-tab character occupies 1 column
+		}
+		p++;
+	}
+	return display_col;
+}
+
 SourceSpan extend_span_with_token(SourceSpan loc, SourceSpan after)
 {
 	ASSERT(loc.source_file == after.source_file, "Source files must match");
