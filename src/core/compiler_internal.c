@@ -56,6 +56,20 @@ const char* binary_operator_to_string(BinaryOperator op)
 		return "*";
 	case BINARY_OPERATOR_DIVIDE:
 		return "/";
+	case BINARY_OPERATOR_EQUAL:
+		return "==";
+	case BINARY_OPERATOR_NOT_EQUAL:
+		return "!=";
+	case BINARY_OPERATOR_GREATER:
+		return ">";
+	case BINARY_OPERATOR_LESS:
+		return "<";
+	case BINARY_OPERATOR_GREATER_OR_EQUAL:
+		return ">=";
+	case BINARY_OPERATOR_LESS_OR_EQUAL:
+		return "<=";
+	case BINARY_OPERATOR_ASSIGN:
+		return "=";
 	default:
 		return "unknown";
 	}
@@ -170,6 +184,10 @@ void emit_statement_json(Statement* stmt, cJSON* array)
 		emit_declaration_json(stmt->declaration.declaration, obj);
 		break;
 	}
+
+	case STATEMENT_EXPRESSION:
+		emit_expression_json(stmt->expression.expression, obj);
+		break;
 
 	default:
 		cJSON_AddStringToObject(obj, "type", "unknown");

@@ -5,6 +5,7 @@
 #include <llvm-c/DebugInfo.h>
 #include <llvm-c/Target.h>
 #include <llvm-c/TargetMachine.h>
+#include <llvm-c/Transforms/PassBuilder.h>
 
 extern Context global_context; // from compiler_internal.h
 
@@ -41,25 +42,83 @@ LLVMValueRef codegen_emit_cast_bool_to_int32(CodegenContext* context, LLVMValueR
 
 LLVMValueRef codegen_emit_binary_expression(CodegenContext* context, Expression* expression)
 {
-	LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
-	LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
-
 	switch (expression->binary.operator)
 	{
-	case BINARY_OPERATOR_ADD:
+	case BINARY_OPERATOR_ADD: {
+		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
+		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
+
 		return LLVMBuildAdd(context->llvm_builder, lhs, rhs, "add");
-	case BINARY_OPERATOR_SUBTRACT:
+	}
+	case BINARY_OPERATOR_SUBTRACT: {
+		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
+		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
+
 		return LLVMBuildSub(context->llvm_builder, lhs, rhs, "sub");
-	case BINARY_OPERATOR_MULTIPLY:
+	}
+	case BINARY_OPERATOR_MULTIPLY: {
+		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
+		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
+
 		return LLVMBuildMul(context->llvm_builder, lhs, rhs, "mul");
-	case BINARY_OPERATOR_DIVIDE:
+	}
+	case BINARY_OPERATOR_DIVIDE: {
+		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
+		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
+
 		return LLVMBuildSDiv(context->llvm_builder, lhs, rhs, "div");
-	case BINARY_OPERATOR_EQUAL:
+	}
+	case BINARY_OPERATOR_EQUAL: {
+		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
+		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
+
 		return codegen_emit_cast_bool_to_int32(context,
 		                                       LLVMBuildICmp(context->llvm_builder, LLVMIntEQ, lhs, rhs, "equal"));
-	case BINARY_OPERATOR_NOT_EQUAL:
+	}
+	case BINARY_OPERATOR_NOT_EQUAL: {
+		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
+		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
+
 		return codegen_emit_cast_bool_to_int32(context,
-		                                       LLVMBuildICmp(context->llvm_builder, LLVMIntNE, lhs, rhs, "notequal"));
+		                                       LLVMBuildICmp(context->llvm_builder, LLVMIntNE, lhs, rhs, "not.equal"));
+	}
+	case BINARY_OPERATOR_GREATER: {
+		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
+		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
+
+		return codegen_emit_cast_bool_to_int32(context,
+		                                       LLVMBuildICmp(context->llvm_builder, LLVMIntSGT, lhs, rhs, "greater"));
+	}
+	case BINARY_OPERATOR_LESS: {
+		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
+		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
+
+		return codegen_emit_cast_bool_to_int32(context,
+		                                       LLVMBuildICmp(context->llvm_builder, LLVMIntSLT, lhs, rhs, "less"));
+	}
+	case BINARY_OPERATOR_GREATER_OR_EQUAL: {
+		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
+		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
+
+		return codegen_emit_cast_bool_to_int32(
+		    context, LLVMBuildICmp(context->llvm_builder, LLVMIntSGE, lhs, rhs, "greater.or.equal"));
+	}
+	case BINARY_OPERATOR_LESS_OR_EQUAL: {
+		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
+		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
+
+		return codegen_emit_cast_bool_to_int32(
+		    context, LLVMBuildICmp(context->llvm_builder, LLVMIntSLE, lhs, rhs, "less.or.equal"));
+	}
+	case BINARY_OPERATOR_ASSIGN: {
+		LLVMValueRef variable = expression->binary.left->identifier.refered->handle;
+		LLVMValueRef rhs      = codegen_emit_expression(context, expression->binary.right);
+
+		LLVMBuildStore(context->llvm_builder, rhs, variable);
+
+		return rhs;
+	}
+
 	default:
 		break;
 	}
@@ -90,6 +149,12 @@ LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expres
 
 void codegen_emit_return_statement(CodegenContext* context, Statement* statement)
 {
+	if (statement->return_.expression == nullptr)
+	{
+		LLVMBuildRetVoid(context->llvm_builder);
+		return;
+	}
+
 	LLVMValueRef value = codegen_emit_expression(context, statement->return_.expression);
 	LLVMBuildRet(context->llvm_builder, value);
 }
@@ -135,6 +200,10 @@ void codegen_emit_statement(CodegenContext* context, Statement* statement)
 		}
 		break;
 	}
+
+	case STATEMENT_EXPRESSION:
+		codegen_emit_expression(context, statement->expression.expression);
+		break;
 
 	case STATEMENT_COMPOUND:
 		codegen_emit_compound_statement(context, statement->compound.first);
@@ -245,6 +314,52 @@ void codegen_generate(CompilerBuildOptions* build_options)
 
 		return;
 	}
+
+	LLVMPassBuilderOptionsRef pass_options = LLVMCreatePassBuilderOptions();
+	LLVMPassBuilderOptionsSetVerifyEach(pass_options, true);    // Verify after each pass
+	LLVMPassBuilderOptionsSetDebugLogging(pass_options, false); // Disable debug logging for now
+
+	/*
+	    constprop
+	    Propagates constant values through the IR.
+
+	    mem2reg
+	    Promotes alloca-based variables to SSA registers, eliminating loads and stores.
+
+	    dce
+	    Dead code elimination.
+
+	    instcombine
+	    Combines instructions to form fewer, more complex instructions.
+
+	    simplifycfg
+	    Simplifies the control flow graph of the function.
+
+	    loop-unroll,loop-vectorize
+	    Unrolls and vectorizes loops.
+
+	    early-cse
+	    Performs early common subexpression elimination.
+
+	    adce
+	    Aggressive dead code elimination.
+
+	    default<O0>, default<O1>, default<O2>, default<O3>, default<Os>, default<Oz>
+	    0 - 3 are optimization levels, Os and Oz are size optimizations.
+	*/
+
+	// const char* passes      = "mem2reg,instcombine,simplifycfg,loop-unroll,loop-vectorize,early-cse,adce";
+	const char* passes      = "default<O0>";
+	LLVMErrorRef pass_error = LLVMRunPasses(context.llvm_module, passes, platform_target.machine_ref, pass_options);
+	if (pass_error != LLVMErrorSuccess)
+	{
+		char* error_msg = LLVMGetErrorMessage(pass_error);
+		ERROR("Failed to run passes: %s\n", error_msg);
+		LLVMDisposeErrorMessage(error_msg);
+		LLVMDisposePassBuilderOptions(pass_options);
+		return;
+	}
+	LLVMDisposePassBuilderOptions(pass_options);
 
 	char* err = "";
 	if (LLVMTargetMachineEmitToFile(platform_target.machine_ref, context.llvm_module, "main.obj", LLVMObjectFile,

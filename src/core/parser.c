@@ -51,6 +51,16 @@ void parser_advance(Parser* parser)
 		return;
 }
 
+inline Token parser_get_token(Parser* parser)
+{
+	return parser->lexer->current_token;
+}
+
+inline TokenType parser_get_token_type(Parser* parser)
+{
+	return parser->lexer->current_token.type;
+}
+
 Token parser_get_token_and_advance(Parser* parser)
 {
 	Token token = parser->lexer->current_token;
@@ -145,6 +155,8 @@ int8 parser_get_token_precedence(TokenType type)
 	case TOKEN_EQUAL_EQUAL:
 	case TOKEN_NOT_EQUAL:
 		return 2;
+	case TOKEN_EQUAL:
+		return 1;
 	default:
 		return -1;
 	}
@@ -292,6 +304,38 @@ Expression* parse_primary_expression(Parser* parser)
 	}
 }
 
+BinaryOperator token_type_to_binary_operator(TokenType type)
+{
+	switch (type)
+	{
+	case TOKEN_PLUS:
+		return BINARY_OPERATOR_ADD;
+	case TOKEN_MINUS:
+		return BINARY_OPERATOR_SUBTRACT;
+	case TOKEN_STAR:
+		return BINARY_OPERATOR_MULTIPLY;
+	case TOKEN_SLASH:
+		return BINARY_OPERATOR_DIVIDE;
+	case TOKEN_EQUAL_EQUAL:
+		return BINARY_OPERATOR_EQUAL;
+	case TOKEN_NOT_EQUAL:
+		return BINARY_OPERATOR_NOT_EQUAL;
+	case TOKEN_LESS:
+		return BINARY_OPERATOR_LESS;
+	case TOKEN_LESS_OR_EQUAL:
+		return BINARY_OPERATOR_LESS_OR_EQUAL;
+	case TOKEN_GREATER:
+		return BINARY_OPERATOR_GREATER;
+	case TOKEN_GREATER_OR_EQUAL:
+		return BINARY_OPERATOR_GREATER_OR_EQUAL;
+	case TOKEN_EQUAL:
+		return BINARY_OPERATOR_ASSIGN;
+	default:
+		ASSERT(false, "Invalid token type for binary operator");
+		return BINARY_OPERATOR_INVALID;
+	}
+}
+
 Expression* parse_expression_rhs(Parser* parser, Expression* lhs, int8 min_precedence)
 {
 	while (true)
@@ -325,7 +369,7 @@ Expression* parse_expression_rhs(Parser* parser, Expression* lhs, int8 min_prece
 		Expression* binary  = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
 		binary->kind        = EXPRESSION_BINARY;
 		binary->binary.left = lhs;
-		binary->binary.operator= operator;
+		binary->binary.operator= token_type_to_binary_operator(operator);
 		binary->binary.right = rhs;
 		binary->source_span  = extend_span_with_token(lhs->source_span, rhs->source_span);
 
@@ -348,12 +392,17 @@ Statement* parse_return_statement(Parser* parser)
 {
 	Token return_token = parser_get_token_and_advance(parser); // consume return
 
-	Statement* statement          = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
-	statement->type               = STATEMENT_RETURN;
-	statement->return_.expression = parse_expression(parser);
+	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
+	statement->type      = STATEMENT_RETURN;
 
-	if (statement->return_.expression->kind == EXPRESSION_INVALID)
-		return &invalid_statement;
+	// if no expression, just return;
+	if (parser_get_token_type(parser) != TOKEN_SEMICOLON)
+	{
+		statement->return_.expression = parse_expression(parser);
+
+		if (statement->return_.expression->kind == EXPRESSION_INVALID)
+			return &invalid_statement;
+	}
 
 	if (!parser_expect(parser, TOKEN_SEMICOLON))
 		return &invalid_statement;
@@ -402,12 +451,33 @@ Statement* parse_variable_declaration_statement(Parser* parser)
 	return statement;
 }
 
+Statement* parse_expression_statement(Parser* parser)
+{
+	Token type_token = parser->lexer->current_token;
+
+	Statement* statement             = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
+	statement->type                  = STATEMENT_EXPRESSION;
+	statement->expression.expression = parse_expression(parser);
+
+	if (!parser_expect(parser, TOKEN_SEMICOLON))
+		return &invalid_statement;
+
+	Token semicolon_token = parser_get_token_and_advance(parser); // consume ;
+
+	statement->source_span = extend_span_with_token(type_token.source_span, semicolon_token.source_span);
+
+	return statement;
+}
+
 Statement* parse_statement(Parser* parser)
 {
 	switch (parser->lexer->current_token.type)
 	{
 	TOKEN_TYPE_KINDS:
 		return parse_variable_declaration_statement(parser);
+
+	case TOKEN_IDENTIFIER:
+		return parse_expression_statement(parser);
 
 	case TOKEN_RETURN_KEYWORD:
 		return parse_return_statement(parser);

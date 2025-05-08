@@ -2,6 +2,8 @@ fn int32 main()
 {
     int32 a = 2400;
 
+    a = 400;
+
     return a;
 }
 
@@ -16,6 +18,7 @@ define i32 @main() {
 entry:
   %a = alloca i32, align 4
   store i32 2400, ptr %a, align 4
+  store i32 400, ptr %a, align 4
   %a1 = load i32, ptr %a, align 4
   ret i32 %a1
 }

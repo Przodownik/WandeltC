@@ -107,6 +107,7 @@ typedef enum _StatementType
 	STATEMENT_INVALID = 0,
 	STATEMENT_COMPOUND,
 	STATEMENT_DECLARATION,
+	STATEMENT_EXPRESSION,
 	STATEMENT_RETURN,
 } StatementType;
 
@@ -119,6 +120,11 @@ typedef struct _DeclarationStatement
 {
 	Declaration* declaration;
 } DeclarationStatement;
+
+typedef struct _ExpressionStatement
+{
+	Expression* expression;
+} ExpressionStatement;
 
 typedef struct _ReturnStatement
 {
@@ -134,19 +140,25 @@ typedef struct _Statement
 	union {
 		CompountStatement compound;
 		DeclarationStatement declaration;
+		ExpressionStatement expression;
 		ReturnStatement return_;
 	};
 } Statement;
 
 typedef enum _BinaryOperator
 {
-	BINARY_OPERATOR_INVALID  = 0,
-	BINARY_OPERATOR_ADD      = TOKEN_PLUS,
-	BINARY_OPERATOR_SUBTRACT = TOKEN_MINUS,
-	BINARY_OPERATOR_MULTIPLY = TOKEN_STAR,
-	BINARY_OPERATOR_DIVIDE   = TOKEN_SLASH,
-	BINARY_OPERATOR_EQUAL = TOKEN_EQUAL_EQUAL,
-	BINARY_OPERATOR_NOT_EQUAL = TOKEN_NOT_EQUAL,
+	BINARY_OPERATOR_INVALID          = 0,
+	BINARY_OPERATOR_ADD              = TOKEN_PLUS,
+	BINARY_OPERATOR_SUBTRACT         = TOKEN_MINUS,
+	BINARY_OPERATOR_MULTIPLY         = TOKEN_STAR,
+	BINARY_OPERATOR_DIVIDE           = TOKEN_SLASH,
+	BINARY_OPERATOR_EQUAL            = TOKEN_EQUAL_EQUAL,
+	BINARY_OPERATOR_NOT_EQUAL        = TOKEN_NOT_EQUAL,
+	BINARY_OPERATOR_GREATER          = TOKEN_GREATER,
+	BINARY_OPERATOR_LESS             = TOKEN_LESS,
+	BINARY_OPERATOR_GREATER_OR_EQUAL = TOKEN_GREATER_OR_EQUAL,
+	BINARY_OPERATOR_LESS_OR_EQUAL    = TOKEN_LESS_OR_EQUAL,
+	BINARY_OPERATOR_ASSIGN           = TOKEN_EQUAL,
 } BinaryOperator;
 
 const char* binary_operator_to_string(BinaryOperator op);
@@ -175,7 +187,6 @@ typedef enum _ExpressionKind
 	EXPRESSION_UNARY,
 	EXPRESSION_GROUP,
 	EXPRESSION_IDENTIFIER,
-	EXPRESSION_ASSIGN,
 } ExpressionKind;
 
 typedef struct _LiteralExpression
@@ -211,13 +222,6 @@ typedef struct _IdentifierExpression
 	Declaration* refered; // declaration the identifier refers to
 } IdentifierExpression;
 
-typedef struct
-{
-	Expression* left;
-	Expression* right;
-	AssignOperator operator;
-} AssignExpression;
-
 typedef struct _Expression
 {
 	ExpressionKind kind;
@@ -229,7 +233,6 @@ typedef struct _Expression
 		UnaryExpression unary;
 		GroupedExpression group;
 		IdentifierExpression identifier;
-		AssignExpression assign;
 	};
 } Expression;
 

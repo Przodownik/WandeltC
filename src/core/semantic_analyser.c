@@ -52,6 +52,20 @@ void sema_pop_scope(SemaContext* sema_context)
 	sema_context->current_scope = &sema_context->scopes[sema_context->current_scope_depth];
 }
 
+bool sema_was_function_declared(SemaContext* sema_context, const char* name)
+{
+	for (uint64 i = 0; i < vector_get_length(sema_context->analysed_functions); ++i)
+	{
+		Declaration* function_declaration = sema_context->analysed_functions[i];
+		if (strcmp(function_declaration->function.signature.name, name) == 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void sema_analyse_compound_statement(SemaContext* sema_context, Statement* statement)
 {
 	sema_push_scope(sema_context, statement->compound.first);
@@ -147,6 +161,11 @@ void sema_analyse_statement(SemaContext* sema_context, Statement* statement)
 			break;
 		}
 		break;
+
+	case STATEMENT_EXPRESSION:
+		sema_analyse_expression(sema_context, statement->expression.expression);
+		break;
+
 	default:
 		break;
 	}
@@ -175,6 +194,10 @@ void sema_analyse_function_declaration(SemaContext* sema_context, Declaration* d
 
 	sema_pop_scope(sema_context);
 
+	// TODO: verify that fiunction return type matches those with the return statements, or not require return if void
+
+	Statement* function_body = declaration->function.body;
+
 	vector_push(sema_context->analysed_functions, declaration);
 }
 
@@ -198,18 +221,7 @@ void sema_analyse_parsed_context(Context* context)
 	// do not check it if there are any errors, because it could be a false positive
 	if (context->error_count == 0)
 	{
-		Declaration* main_function = nullptr;
-		for (uint64 i = 0; i < vector_get_length(sema_context.analysed_functions); ++i)
-		{
-			Declaration* function_declaration = sema_context.analysed_functions[i];
-			if (strcmp(function_declaration->function.signature.name, "main") == 0)
-			{
-				main_function = function_declaration;
-				break;
-			}
-		}
-
-		if (main_function == nullptr)
+		if (!sema_was_function_declared(&sema_context, "main"))
 		{
 			ERROR("No main function found, please define a main function!\n");
 
