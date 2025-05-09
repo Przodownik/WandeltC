@@ -7,6 +7,12 @@
 
 #include "core/token.h"
 
+// Yellow highlight red text
+#define YHRT(text) ANSI_COLOR_YELLOW text ANSI_COLOR_RED
+
+// Yellow highlight orange text
+#define YHOT(text) ANSI_COLOR_YELLOW text ANSI_COLOR_ORANGE
+
 typedef struct _Declaration Declaration;
 typedef struct _Statement Statement;
 typedef struct _Type Type;
@@ -51,7 +57,9 @@ typedef enum _Visibility
 
 typedef enum _TypeKind
 {
-	TYPE_KIND_INT_32 = 0,
+	TYPE_KIND_VOID = 0,
+	TYPE_KIND_INT_32,
+	TYPE_KIND_BOOL,
 	TYPE_KIND_FUNCTION,
 	TYPE_KIND_COUNT,
 } TypeKind;
@@ -60,6 +68,8 @@ typedef struct _Type
 {
 	TypeKind kind;
 } Type;
+
+const char* type_kind_to_string(TypeKind kind);
 
 typedef enum _DeclKind
 {
@@ -182,21 +192,29 @@ const char* assign_operator_to_string(AssignOperator op);
 typedef enum _ExpressionKind
 {
 	EXPRESSION_INVALID = 0,
-	EXPRESSION_LITERAL,
+	EXPRESSION_CONSTANT,
 	EXPRESSION_BINARY,
 	EXPRESSION_UNARY,
 	EXPRESSION_GROUP,
 	EXPRESSION_IDENTIFIER,
 } ExpressionKind;
 
-typedef struct _LiteralExpression
+typedef enum _ConstantType
 {
-	Type* type;
+	CONSTANT_TYPE_INVALID = 0,
+	CONSTANT_TYPE_INT_32,
+	CONSTANT_TYPE_BOOL,
+} ConstantType;
+
+typedef struct _ConstantExpression
+{
+	ConstantType type;
 
 	union {
+		bool bool_value;
 		int32 int_value;
 	};
-} LiteralExpression;
+} ConstantExpression;
 
 typedef struct _BinaryExpression
 {
@@ -219,16 +237,17 @@ typedef struct _GroupedExpression
 typedef struct _IdentifierExpression
 {
 	const char* name;
-	Declaration* refered; // declaration the identifier refers to
+	Declaration* refered; // declaration the identifier refers to (resolved during semantic analysis!)
 } IdentifierExpression;
 
 typedef struct _Expression
 {
 	ExpressionKind kind;
 	SourceSpan source_span;
+	Type* type; // resultant type of the expression
 
 	union {
-		LiteralExpression literal;
+		ConstantExpression constant;
 		BinaryExpression binary;
 		UnaryExpression unary;
 		GroupedExpression group;

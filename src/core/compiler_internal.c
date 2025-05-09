@@ -2,7 +2,9 @@
 
 #include "vendor/cJSON/cJSON.h"
 
+static Type void_type  = {.kind = TYPE_KIND_VOID};
 static Type int32_type = {.kind = TYPE_KIND_INT_32};
+static Type bool_type  = {.kind = TYPE_KIND_BOOL};
 
 void compiler_internal_initialize(void)
 {
@@ -14,12 +16,18 @@ void compiler_internal_initialize(void)
 	symbol_table = hash_map_create(sizeof(TokenType), TOKEN_KEYWORD_COUNT);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_FUNCTION_KEYWORD), TOKEN_FUNCTION_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_RETURN_KEYWORD), TOKEN_RETURN_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_VOID_KEYWORD), TOKEN_VOID_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_INT32_KEYWORD), TOKEN_INT32_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_BOOL_KEYWORD), TOKEN_BOOL_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_TRUE_KEYWORD), TOKEN_TRUE_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_FALSE_KEYWORD), TOKEN_FALSE_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_PUBLIC_KEYWORD), TOKEN_PUBLIC_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_PRIVATE_KEYWORD), TOKEN_PRIVATE_KEYWORD);
 
 	type_table = hash_map_create(sizeof(Type*), TYPE_KIND_COUNT);
-	hash_map_set(&type_table, "int32", &int32_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_VOID_KEYWORD), &void_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_INT32_KEYWORD), &int32_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_BOOL_KEYWORD), &bool_type);
 
 	global_context.functions_declarations = vector_create(10, sizeof(Declaration*));
 }
@@ -42,6 +50,23 @@ void compiler_internal_shutdown(void)
 	hash_map_destroy(&type_table);
 
 	vector_destroy(global_context.functions_declarations);
+}
+
+const char* type_kind_to_string(TypeKind kind)
+{
+	switch (kind)
+	{
+	case TYPE_KIND_VOID:
+		return "void";
+	case TYPE_KIND_INT_32:
+		return "int32";
+	case TYPE_KIND_BOOL:
+		return "bool";
+	case TYPE_KIND_FUNCTION:
+		return "function";
+	default:
+		return "unknown";
+	}
 }
 
 const char* binary_operator_to_string(BinaryOperator op)
@@ -110,9 +135,9 @@ void emit_expression_json(Expression* expr, cJSON* parent)
 	cJSON* obj = cJSON_CreateObject();
 	switch (expr->kind)
 	{
-	case EXPRESSION_LITERAL:
+	case EXPRESSION_CONSTANT:
 		cJSON_AddStringToObject(obj, "kind", "literal");
-		cJSON_AddNumberToObject(obj, "value", expr->literal.int_value);
+		cJSON_AddNumberToObject(obj, "value", expr->constant.int_value);
 		break;
 
 	case EXPRESSION_GROUP:

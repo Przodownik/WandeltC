@@ -1,9 +1,10 @@
 fn int32 main()
 {
-    // return (129 - 1) / 2 == 64;
+    bool boolean = false;
 
-    int32 x = 12;
-    int32 y = 24;
+    int32 a = 2400;
 
-    return y / 2 == x;
+    a = 400;
+
+    return a;
 }

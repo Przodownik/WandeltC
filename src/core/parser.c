@@ -9,8 +9,7 @@ extern ArenaAllocator expression_allocator;  // from compiler_internal.h
 extern HashMap type_table;                   // from compiler_internal.h
 extern Context global_context;               // from compiler_internal.h
 
-#define YELLOW_HIGHLIGHT(text)   ANSI_COLOR_YELLOW text ANSI_COLOR_RED
-#define UNEXPECTED_TOKEN_MESSAGE "Unexpected token '" YELLOW_HIGHLIGHT("%s") "' found!"
+#define UNEXPECTED_TOKEN_MESSAGE "Unexpected token '" YHRT("%s") "' found!"
 #define OK_OR_RET_FALSE(x) \
 	if (!x)                \
 	return false
@@ -21,7 +20,9 @@ extern Context global_context;               // from compiler_internal.h
 	case TOKEN_PLUS:           \
 	case TOKEN_MINUS
 
-#define TOKEN_TYPE_KINDS case TOKEN_INT32_KEYWORD
+#define TOKEN_TYPE_KINDS      \
+	case TOKEN_INT32_KEYWORD: \
+	case TOKEN_BOOL_KEYWORD
 
 static Declaration invalid_declaration = {.kind = DECLARATION_INVALID};
 static Statement invalid_statement     = {.type = DECLARATION_INVALID};
@@ -76,10 +77,9 @@ bool parser_expect(Parser* parser, TokenType expected_type)
 
 	if (token.type != expected_type)
 	{
-		parser_report_error(
-		    &token.source_span,
-		    "Unexpected token '" YELLOW_HIGHLIGHT("%s") "' found! Token '" YELLOW_HIGHLIGHT("%s") "' was expected!",
-		    token.lexeme, token_type_to_string(expected_type));
+		parser_report_error(&token.source_span,
+		                    "Unexpected token '" YHRT("%s") "' found! Token '" YHRT("%s") "' was expected!",
+		                    token.lexeme, token_type_to_string(expected_type));
 
 		return false;
 	}
@@ -168,7 +168,7 @@ bool parse_identifier(Parser* parser, const char** identifier)
 	if (parser->lexer->current_token.type != TOKEN_IDENTIFIER)
 	{
 		parser_report_error(&parser->lexer->current_token.source_span,
-		                    "Expected an identifier and received '" YELLOW_HIGHLIGHT("%s") "'",
+		                    "Expected an identifier and received '" YHRT("%s") "'",
 		                    parser->lexer->current_token.lexeme);
 		return false;
 	}
@@ -183,19 +183,18 @@ bool parse_identifier(Parser* parser, const char** identifier)
 // <type>
 bool parse_type(Parser* parser, Type** type)
 {
-	Type* mapped_type = (Type*)hash_map_get_value(&type_table, parser->lexer->current_token.lexeme);
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, parser->lexer->current_token.lexeme);
 	if (mapped_type == nullptr)
 	{
-		parser_report_error(
-		    &parser->lexer->current_token.source_span,
-		    "Expected a valid return type and received '" YELLOW_HIGHLIGHT(
-		        "%s") "'. Standard types include " YELLOW_HIGHLIGHT("void") ", " YELLOW_HIGHLIGHT("int32") ", etc.",
-		    parser->lexer->current_token.lexeme);
+		parser_report_error(&parser->lexer->current_token.source_span,
+		                    "Expected a valid return type and received '" YHRT("%s") "'. Standard types include " YHRT(
+		                        "void") ", " YHRT("int32") ", etc.",
+		                    parser->lexer->current_token.lexeme);
 
 		return false;
 	}
 
-	*type = mapped_type;
+	*type = *mapped_type;
 
 	parser_advance(parser); // consume the type
 
@@ -234,21 +233,20 @@ bool parse_function_signature(Parser* parser, FunctionSignature* signature)
 	return true;
 }
 
-Expression* parse_literal_expression(Parser* parser)
+Expression* parse_constant_expression(Parser* parser)
 {
 	if (parser->lexer->current_token.type != TOKEN_NUMBER)
 	{
 		parser_report_error(&parser->lexer->current_token.source_span,
-		                    "Expected a number and received '" YELLOW_HIGHLIGHT("%s") "'",
-		                    parser->lexer->current_token.lexeme);
+		                    "Expected a number and received '" YHRT("%s") "'", parser->lexer->current_token.lexeme);
 		return &invalid_expression;
 	}
 
-	Expression* expression        = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
-	expression->kind              = EXPRESSION_LITERAL;
-	expression->literal.int_value = atoi(parser->lexer->current_token.lexeme);
-	expression->literal.type      = &int32_type; // TODO add type deduction
-	expression->source_span       = parser->lexer->current_token.source_span;
+	Expression* expression         = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind               = EXPRESSION_CONSTANT;
+	expression->constant.int_value = atoi(parser->lexer->current_token.lexeme);
+	expression->constant.type      = &int32_type; // TODO add type deduction
+	expression->source_span        = parser->lexer->current_token.source_span;
 
 	parser_advance(parser); // consume the number
 
@@ -283,7 +281,7 @@ Expression* parse_primary_expression(Parser* parser)
 	switch (parser->lexer->current_token.type)
 	{
 	case TOKEN_NUMBER:
-		return parse_literal_expression(parser);
+		return parse_constant_expression(parser);
 	case TOKEN_OPEN_PAREN:
 		return parse_grouped_expression(parser);
 	case TOKEN_IDENTIFIER:
@@ -296,10 +294,9 @@ Expression* parse_primary_expression(Parser* parser)
 
 		return expression;
 	default:
-		parser_report_error(
-		    &parser->lexer->current_token.source_span,
-		    "Expected an " YELLOW_HIGHLIGHT("expression") ", but received a '" YELLOW_HIGHLIGHT("%s") "'",
-		    parser->lexer->current_token.lexeme);
+		parser_report_error(&parser->lexer->current_token.source_span,
+		                    "Expected an " YHRT("expression") ", but received a '" YHRT("%s") "'",
+		                    parser->lexer->current_token.lexeme);
 		return &invalid_expression;
 	}
 }
@@ -555,8 +552,8 @@ Declaration* parse_top_level_statement(Parser* parser)
 		break;
 	default:
 		parser_report_error(&lexer->current_token.source_span,
-		                    UNEXPECTED_TOKEN_MESSAGE " A top-level statement was expected e.g. a " YELLOW_HIGHLIGHT(
-		                        "function") " or a " YELLOW_HIGHLIGHT("variable") " declaration!",
+		                    UNEXPECTED_TOKEN_MESSAGE " A top-level statement was expected e.g. a " YHRT(
+		                        "function") " or a " YHRT("variable") " declaration!",
 		                    lexer->current_token.lexeme);
 		break;
 	}

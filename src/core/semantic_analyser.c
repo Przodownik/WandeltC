@@ -52,18 +52,18 @@ void sema_pop_scope(SemaContext* sema_context)
 	sema_context->current_scope = &sema_context->scopes[sema_context->current_scope_depth];
 }
 
-bool sema_was_function_declared(SemaContext* sema_context, const char* name)
+Declaration* sema_try_get_defined_function(SemaContext* sema_context, const char* name)
 {
 	for (uint64 i = 0; i < vector_get_length(sema_context->analysed_functions); ++i)
 	{
 		Declaration* function_declaration = sema_context->analysed_functions[i];
 		if (strcmp(function_declaration->function.signature.name, name) == 0)
 		{
-			return true;
+			return function_declaration;
 		}
 	}
 
-	return false;
+	return nullptr;
 }
 
 void sema_analyse_compound_statement(SemaContext* sema_context, Statement* statement)
@@ -125,7 +125,7 @@ void sema_analyse_expression(SemaContext* sema_context, Expression* expression)
 	case EXPRESSION_GROUP:
 		sema_analyse_expression(sema_context, expression->group.expression);
 		break;
-	case EXPRESSION_LITERAL:
+	case EXPRESSION_CONSTANT:
 		break;
 	default:
 		break;
@@ -173,19 +173,14 @@ void sema_analyse_statement(SemaContext* sema_context, Statement* statement)
 
 void sema_analyse_function_declaration(SemaContext* sema_context, Declaration* declaration)
 {
-	for (uint32 i = 0; i < vector_get_length(sema_context->analysed_functions); ++i)
+	Declaration* existing_function = sema_try_get_defined_function(sema_context, declaration->function.signature.name);
+	if (existing_function != nullptr)
 	{
-		Declaration* analysed_function = sema_context->analysed_functions[i];
-
-		if (strcmp(analysed_function->function.signature.name, declaration->function.signature.name) == 0)
-		{
-			sema_report_warning(&declaration->function.signature.source_span, "Function '%s' is being redefined!",
-			                    declaration->function.signature.name);
-
-			sema_report_error(&analysed_function->function.signature.source_span,
-			                  "Function '%s' was already declared here!", declaration->function.signature.name);
-			return;
-		}
+		sema_report_warning(&declaration->function.signature.source_span, "Function '%s' is being redefined!",
+		                    declaration->function.signature.name);
+		sema_report_error(&existing_function->function.signature.source_span,
+		                  "Function '%s' was already declared here!", declaration->function.signature.name);
+		return;
 	}
 
 	sema_push_scope(sema_context, declaration->function.body);
@@ -194,7 +189,7 @@ void sema_analyse_function_declaration(SemaContext* sema_context, Declaration* d
 
 	sema_pop_scope(sema_context);
 
-	// TODO: verify that fiunction return type matches those with the return statements, or not require return if void
+	// TODO: verify that function return type matches those with the return statements, or not require return if void
 
 	Statement* function_body = declaration->function.body;
 
@@ -221,11 +216,22 @@ void sema_analyse_parsed_context(Context* context)
 	// do not check it if there are any errors, because it could be a false positive
 	if (context->error_count == 0)
 	{
-		if (!sema_was_function_declared(&sema_context, "main"))
+		Declaration* main_function = sema_try_get_defined_function(&sema_context, "main");
+
+		if (main_function == nullptr)
 		{
 			ERROR("No main function found, please define a main function!\n");
 
 			context->error_count++;
+		}
+		else
+		{
+			if (main_function->function.signature.return_type->kind != TYPE_KIND_INT_32)
+			{
+				sema_report_warning(&main_function->function.signature.source_span,
+				                    "Main function should return '" YHOT("int32") "', but it returns '" YHOT("%s") "'",
+				                    type_kind_to_string(main_function->function.signature.return_type->kind));
+			}
 		}
 	}
 

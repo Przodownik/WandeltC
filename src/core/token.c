@@ -8,8 +8,16 @@ const char* token_type_to_string(TokenType type)
 		return "fn";
 	case TOKEN_RETURN_KEYWORD:
 		return "return";
+	case TOKEN_VOID_KEYWORD:
+		return "void";
 	case TOKEN_INT32_KEYWORD:
 		return "int32";
+	case TOKEN_BOOL_KEYWORD:
+		return "bool";
+	case TOKEN_TRUE_KEYWORD:
+		return "true";
+	case TOKEN_FALSE_KEYWORD:
+		return "false";
 	case TOKEN_PUBLIC_KEYWORD:
 		return "public";
 	case TOKEN_PRIVATE_KEYWORD:
@@ -99,6 +107,14 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_RETURN_KEYWORD";
 	case TOKEN_INT32_KEYWORD:
 		return "TOKEN_INT32_KEYWORD";
+	case TOKEN_VOID_KEYWORD:
+		return "TOKEN_VOID_KEYWORD";
+	case TOKEN_BOOL_KEYWORD:
+		return "TOKEN_BOOL_KEYWORD";
+	case TOKEN_TRUE_KEYWORD:
+		return "TOKEN_TRUE_KEYWORD";
+	case TOKEN_FALSE_KEYWORD:
+		return "TOKEN_FALSE_KEYWORD";
 	case TOKEN_PUBLIC_KEYWORD:
 		return "TOKEN_PUBLIC_KEYWORD";
 	case TOKEN_PRIVATE_KEYWORD:

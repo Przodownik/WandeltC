@@ -19,17 +19,17 @@ typedef struct _CodegenContext
 LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression);
 void codegen_emit_statement(CodegenContext* context, Statement* statement);
 
-LLVMValueRef codegen_emit_literal_expression(CodegenContext* context, Expression* expression)
+LLVMValueRef codegen_emit_constant_expression(CodegenContext* context, Expression* expression)
 {
-	switch (expression->literal.type->kind)
+	switch (expression->type->kind)
 	{
 	case TYPE_KIND_INT_32:
-		return LLVMConstInt(LLVMInt32TypeInContext(context->llvm_context), expression->literal.int_value, false);
+		return LLVMConstInt(LLVMInt32TypeInContext(context->llvm_context), expression->constant.int_value, false);
 	default:
 		break;
 	}
 
-	ASSERT(false, "Invalid literal type: %d\n", expression->literal.type->kind);
+	ASSERT(false, "Invalid literal type: %d\n", expression->type->kind);
 }
 
 LLVMValueRef codegen_emit_cast_bool_to_int32(CodegenContext* context, LLVMValueRef value)
@@ -130,8 +130,8 @@ LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expres
 {
 	switch (expression->kind)
 	{
-	case EXPRESSION_LITERAL:
-		return codegen_emit_literal_expression(context, expression);
+	case EXPRESSION_CONSTANT:
+		return codegen_emit_constant_expression(context, expression);
 	case EXPRESSION_GROUP:
 		return codegen_emit_expression(context, expression->group.expression);
 	case EXPRESSION_BINARY:

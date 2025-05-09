@@ -15,7 +15,11 @@ typedef enum _TokenType
 	// keywords
 	TOKEN_FUNCTION_KEYWORD = 0, // fn
 	TOKEN_RETURN_KEYWORD,       // return
+	TOKEN_VOID_KEYWORD,         // void
 	TOKEN_INT32_KEYWORD,        // int32
+	TOKEN_BOOL_KEYWORD,         // bool
+	TOKEN_TRUE_KEYWORD,         // true
+	TOKEN_FALSE_KEYWORD,        // false
 	TOKEN_PUBLIC_KEYWORD,       // public
 	TOKEN_PRIVATE_KEYWORD,      // private
 	TOKEN_KEYWORD_COUNT,
