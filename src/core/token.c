@@ -80,8 +80,10 @@ const char* token_type_to_string(TokenType type)
 		return "::";
 	case TOKEN_IDENTIFIER:
 		return "identifier";
-	case TOKEN_NUMBER:
-		return "number";
+	case TOKEN_INTEGER:
+		return "integer";
+	case TOKEN_FLOAT:
+		return "float";
 	case TOKEN_STRING:
 		return "string";
 	case TOKEN_CHARACTER:
@@ -177,8 +179,10 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_COLON_COLON";
 	case TOKEN_IDENTIFIER:
 		return "TOKEN_IDENTIFIER";
-	case TOKEN_NUMBER:
-		return "TOKEN_NUMBER";
+	case TOKEN_INTEGER:
+		return "TOKEN_INTEGER";
+	case TOKEN_FLOAT:
+		return "TOKEN_FLOAT";
 	case TOKEN_STRING:
 		return "TOKEN_STRING";
 	case TOKEN_CHARACTER:

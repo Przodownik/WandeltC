@@ -1,0 +1,14 @@
+fn bool main()
+{
+    return false;
+}
+
+/*
+#expectfail
+1| fn bool main()
+   ^^^^^^^^^^^^^^
+2| {
+3|     return false;
+Warning in file (wandelt\warnings\no_int_main.wdt) in row 1 in column 1
+Main function should return 'int32', but it returns 'bool'
+*/

@@ -155,6 +155,14 @@ typedef struct _Statement
 	};
 } Statement;
 
+#define LOGICAL_OPERATORS                  \
+	case BINARY_OPERATOR_EQUAL:            \
+	case BINARY_OPERATOR_NOT_EQUAL:        \
+	case BINARY_OPERATOR_GREATER:          \
+	case BINARY_OPERATOR_LESS:             \
+	case BINARY_OPERATOR_GREATER_OR_EQUAL: \
+	case BINARY_OPERATOR_LESS_OR_EQUAL
+
 typedef enum _BinaryOperator
 {
 	BINARY_OPERATOR_INVALID          = 0,
@@ -212,7 +220,7 @@ typedef struct _ConstantExpression
 
 	union {
 		bool bool_value;
-		int32 int_value;
+		int64 int_value;
 	};
 } ConstantExpression;
 

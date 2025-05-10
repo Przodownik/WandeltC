@@ -28,8 +28,6 @@ static Declaration invalid_declaration = {.kind = DECLARATION_INVALID};
 static Statement invalid_statement     = {.type = DECLARATION_INVALID};
 static Expression invalid_expression   = {.kind = EXPRESSION_INVALID};
 
-static Type int32_type = {.kind = TYPE_KIND_INT_32};
-
 Parser parser_create(Context* context, Lexer* lexer)
 {
 	Parser parser;
@@ -233,24 +231,52 @@ bool parse_function_signature(Parser* parser, FunctionSignature* signature)
 	return true;
 }
 
-Expression* parse_constant_expression(Parser* parser)
+Expression* parse_integer_constant_expression(Parser* parser)
 {
-	if (parser->lexer->current_token.type != TOKEN_NUMBER)
-	{
-		parser_report_error(&parser->lexer->current_token.source_span,
-		                    "Expected a number and received '" YHRT("%s") "'", parser->lexer->current_token.lexeme);
-		return &invalid_expression;
-	}
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_INT32_KEYWORD));
 
 	Expression* expression         = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
 	expression->kind               = EXPRESSION_CONSTANT;
 	expression->constant.int_value = atoi(parser->lexer->current_token.lexeme);
-	expression->constant.type      = &int32_type; // TODO add type deduction
+	expression->type               = *mapped_type;
+	expression->constant.type      = CONSTANT_TYPE_INT_32;
 	expression->source_span        = parser->lexer->current_token.source_span;
 
 	parser_advance(parser); // consume the number
 
 	return expression;
+}
+
+Expression* parse_boolean_constant_expression(Parser* parser)
+{
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_BOOL_KEYWORD));
+
+	Expression* expression          = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind                = EXPRESSION_CONSTANT;
+	expression->constant.bool_value = parser->lexer->current_token.type == TOKEN_TRUE_KEYWORD;
+	expression->type                = *mapped_type;
+	expression->constant.type       = CONSTANT_TYPE_BOOL;
+	expression->source_span         = parser->lexer->current_token.source_span;
+
+	parser_advance(parser); // consume the bool
+
+	return expression;
+}
+
+Expression* parse_constant_expression(Parser* parser)
+{
+	switch (parser->lexer->current_token.type)
+	{
+	case TOKEN_INTEGER:
+		return parse_integer_constant_expression(parser);
+	case TOKEN_TRUE_KEYWORD:
+	case TOKEN_FALSE_KEYWORD:
+		return parse_boolean_constant_expression(parser);
+	default:
+		break;
+	}
+
+	ASSERT(false, "Invalid constant expression type!");
 }
 
 Expression* parse_grouped_expression(Parser* parser)
@@ -280,7 +306,10 @@ Expression* parse_primary_expression(Parser* parser)
 {
 	switch (parser->lexer->current_token.type)
 	{
-	case TOKEN_NUMBER:
+	case TOKEN_INTEGER:
+	case TOKEN_FLOAT:
+	case TOKEN_TRUE_KEYWORD:
+	case TOKEN_FALSE_KEYWORD:
 		return parse_constant_expression(parser);
 	case TOKEN_OPEN_PAREN:
 		return parse_grouped_expression(parser);

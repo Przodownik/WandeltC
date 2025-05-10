@@ -1,6 +1,8 @@
 #include "semantic_analyser.h"
 #include "diagnostics.h"
 
+extern HashMap type_table; // from compiler_internal.h
+
 void sema_report_error(SourceSpan* location, const char* message, ...)
 {
 	global_context.error_count++;
@@ -36,7 +38,7 @@ typedef struct _SemaContext
 	Declaration** analysed_functions;
 } SemaContext;
 
-void sema_analyse_statement(SemaContext* sema_context, Statement* statement);
+bool sema_analyse_statement(SemaContext* sema_context, Statement* statement);
 
 void sema_push_scope(SemaContext* sema_context, Statement* statement)
 {
@@ -66,7 +68,7 @@ Declaration* sema_try_get_defined_function(SemaContext* sema_context, const char
 	return nullptr;
 }
 
-void sema_analyse_compound_statement(SemaContext* sema_context, Statement* statement)
+bool sema_analyse_compound_statement(SemaContext* sema_context, Statement* statement)
 {
 	sema_push_scope(sema_context, statement->compound.first);
 
@@ -74,11 +76,15 @@ void sema_analyse_compound_statement(SemaContext* sema_context, Statement* state
 
 	while (current != nullptr)
 	{
-		sema_analyse_statement(sema_context, current);
+		if (!sema_analyse_statement(sema_context, current))
+			return false;
+
 		current = current->next;
 	}
 
 	sema_pop_scope(sema_context);
+
+	return true;
 }
 
 Declaration* sema_resolve_identifier_expression(SemaContext* sema_context, Expression* expression)
@@ -105,55 +111,134 @@ Declaration* sema_resolve_identifier_expression(SemaContext* sema_context, Expre
 		}
 	}
 
-	ASSERT(false, "Could not resolve identifier: %s\n", expression->identifier.name);
+	sema_report_error(&expression->source_span,
+	                  "Could not resolve identifier '%s'. Please check if it is declared in the current scope.",
+	                  expression->identifier.name);
+
+	return nullptr;
 }
 
-void sema_analyse_expression(SemaContext* sema_context, Expression* expression)
+Type* sema_deduce_type_for_expression(SemaContext* sema_context, Expression* expression)
+{
+	switch (expression->kind)
+	{
+	case EXPRESSION_CONSTANT:
+		// Already set by the parser
+		break;
+	case EXPRESSION_BINARY:
+		Type* left_type  = sema_deduce_type_for_expression(sema_context, expression->binary.left);
+		Type* right_type = sema_deduce_type_for_expression(sema_context, expression->binary.right);
+
+		if (left_type != right_type)
+		{
+			sema_report_error(&expression->source_span,
+			                  "Binary operator '%s' cannot be applied to different types '%s' and '%s'. Unless you are "
+			                  "doing a cast operation, please check the types of the operands.",
+			                  binary_operator_to_string(expression->binary.operator),
+			                  type_kind_to_string(left_type->kind), type_kind_to_string(right_type->kind));
+
+			return nullptr;
+		}
+
+		switch (expression->binary.operator)
+		{
+		LOGICAL_OPERATORS:
+			Type** bool_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_BOOL_KEYWORD));
+			expression->type = *bool_type;
+			break;
+		default:
+			expression->type = left_type;
+			break;
+		}
+		break;
+
+	case EXPRESSION_UNARY:
+		expression->type = sema_deduce_type_for_expression(sema_context, expression->unary.operand);
+		break;
+	case EXPRESSION_GROUP:
+		expression->type = sema_deduce_type_for_expression(sema_context, expression->group.expression);
+		break;
+	case EXPRESSION_IDENTIFIER:
+		expression->type = expression->identifier.refered->variable.type;
+		break;
+	default:
+		ASSERT(false, "Invalid expression kind: %d\n", expression->kind);
+		break;
+	}
+
+	return expression->type;
+}
+
+bool sema_analyse_expression(SemaContext* sema_context, Expression* expression)
 {
 	switch (expression->kind)
 	{
 	case EXPRESSION_BINARY:
-		sema_analyse_expression(sema_context, expression->binary.left);
-		sema_analyse_expression(sema_context, expression->binary.right);
+		if (!sema_analyse_expression(sema_context, expression->binary.left))
+			return false;
+		if (!sema_analyse_expression(sema_context, expression->binary.right))
+			return false;
 		break;
 	case EXPRESSION_UNARY:
-		sema_analyse_expression(sema_context, expression->unary.operand);
+		if (!sema_analyse_expression(sema_context, expression->unary.operand))
+			return false;
 		break;
 	case EXPRESSION_IDENTIFIER:
 		expression->identifier.refered = sema_resolve_identifier_expression(sema_context, expression);
+		if (expression->identifier.refered == nullptr)
+			return false;
 		break;
 	case EXPRESSION_GROUP:
-		sema_analyse_expression(sema_context, expression->group.expression);
+		if (!sema_analyse_expression(sema_context, expression->group.expression))
+			return false;
 		break;
 	case EXPRESSION_CONSTANT:
 		break;
 	default:
+		ASSERT(false, "Invalid expression kind: %d\n", expression->kind);
 		break;
 	}
+
+	return sema_deduce_type_for_expression(sema_context, expression) != nullptr;
 }
 
-void sema_analyse_return_statement(SemaContext* sema_context, Statement* statement)
+bool sema_analyse_return_statement(SemaContext* sema_context, Statement* statement)
 {
 	if (statement->return_.expression != nullptr)
-		sema_analyse_expression(sema_context, statement->return_.expression);
+		return sema_analyse_expression(sema_context, statement->return_.expression);
+
+	return true;
 }
 
-void sema_analyse_statement(SemaContext* sema_context, Statement* statement)
+bool sema_analyse_statement(SemaContext* sema_context, Statement* statement)
 {
 	switch (statement->type)
 	{
 	case STATEMENT_COMPOUND:
-		sema_analyse_compound_statement(sema_context, statement);
-		break;
+		return sema_analyse_compound_statement(sema_context, statement);
 	case STATEMENT_RETURN:
-		sema_analyse_return_statement(sema_context, statement);
-		break;
+		return sema_analyse_return_statement(sema_context, statement);
 	case STATEMENT_DECLARATION:
 		switch (statement->declaration.declaration->kind)
 		{
 		case DECLARATION_VARIABLE:
-			sema_analyse_expression(sema_context, statement->declaration.declaration->variable.initializer);
-			break;
+			if (!sema_analyse_expression(sema_context, statement->declaration.declaration->variable.initializer))
+				return false;
+
+			Type* variable_type    = statement->declaration.declaration->variable.type;
+			Type* initializer_type = statement->declaration.declaration->variable.initializer->type;
+
+			if (variable_type != initializer_type)
+			{
+				sema_report_error(&statement->source_span,
+				                  "Variable '%s' of type '%s' cannot be initialized with expression of type '%s'.",
+				                  statement->declaration.declaration->variable.name,
+				                  type_kind_to_string(variable_type->kind),
+				                  type_kind_to_string(initializer_type->kind));
+				return false;
+			}
+
+			return true;
 		case DECLARATION_FUNCTION:
 			ASSERT(false, "Not top level function declarations are not supported.\n");
 			break;
@@ -163,15 +248,16 @@ void sema_analyse_statement(SemaContext* sema_context, Statement* statement)
 		break;
 
 	case STATEMENT_EXPRESSION:
-		sema_analyse_expression(sema_context, statement->expression.expression);
-		break;
-
+		return sema_analyse_expression(sema_context, statement->expression.expression);
 	default:
+		ASSERT(false, "Invalid statement kind: %d\n", statement->type);
 		break;
 	}
+
+	return false;
 }
 
-void sema_analyse_function_declaration(SemaContext* sema_context, Declaration* declaration)
+bool sema_analyse_function_declaration(SemaContext* sema_context, Declaration* declaration)
 {
 	Declaration* existing_function = sema_try_get_defined_function(sema_context, declaration->function.signature.name);
 	if (existing_function != nullptr)
@@ -180,12 +266,12 @@ void sema_analyse_function_declaration(SemaContext* sema_context, Declaration* d
 		                    declaration->function.signature.name);
 		sema_report_error(&existing_function->function.signature.source_span,
 		                  "Function '%s' was already declared here!", declaration->function.signature.name);
-		return;
+		return false;
 	}
 
 	sema_push_scope(sema_context, declaration->function.body);
 
-	sema_analyse_compound_statement(sema_context, declaration->function.body);
+	bool result = sema_analyse_compound_statement(sema_context, declaration->function.body);
 
 	sema_pop_scope(sema_context);
 
@@ -194,6 +280,8 @@ void sema_analyse_function_declaration(SemaContext* sema_context, Declaration* d
 	Statement* function_body = declaration->function.body;
 
 	vector_push(sema_context->analysed_functions, declaration);
+
+	return result;
 }
 
 void sema_analyse_parsed_context(Context* context)

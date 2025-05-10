@@ -180,7 +180,7 @@ bool lexer_make_new_verror_token_at_lexing_start(Lexer* lexer, const char* msg, 
 	span.row         = lexer->current_row_number;
 	span.column =
 	    get_display_column(lexer->line_start_char, (uint32)(lexer->lexing_start - lexer->line_start_char) + 1);
-	span.length      = 1;
+	span.length = 1;
 
 	va_list list;
 	va_start(list, msg);
@@ -196,7 +196,8 @@ bool lexer_scan_digit(Lexer* lexer)
 {
 	while (is_character_a_digit(lexer_get_current_char(lexer))) lexer_advance(lexer);
 
-	if (lexer_match(lexer, '.'))
+	bool is_float = lexer_match(lexer, '.');
+	if (is_float)
 	{
 		lexer_advance(lexer);
 
@@ -210,7 +211,7 @@ bool lexer_scan_digit(Lexer* lexer)
 
 	char* buffer = arena_allocator_allocate(&string_allocator, lexeme_length + 1);
 
-	return lexer_make_new_token(lexer, TOKEN_NUMBER,
+	return lexer_make_new_token(lexer, is_float ? TOKEN_FLOAT : TOKEN_INTEGER,
 	                            cstring_copy_part_into_buffer(lexer->lexing_start, lexeme_length, buffer));
 }
 

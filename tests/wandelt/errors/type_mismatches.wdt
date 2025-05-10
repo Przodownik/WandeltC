@@ -1,0 +1,36 @@
+fn int32 main1()
+{
+    int32 x = 125;
+    bool y = false;
+
+    return x / 125 + y;
+}
+
+fn int32 main2()
+{
+    int32 x = (125 * 2) + (1 + false);
+
+    return x;
+}
+
+/*
+#expectfail
+4|     bool y = false;
+5|
+6|     return x / 125 + y;
+              ^^^^^^^^^^^
+7| }
+8|
+Error in file (wandelt\errors\type_mismatches.wdt) in row 6 in column 12
+Binary operator '+' cannot be applied to different types 'int32' and 'bool'. Unless you are doing a cast operation, please check the types of the operands.
+
+
+ 9| fn int32 main2()
+10| {
+11|     int32 x = (125 * 2) + (1 + false);
+                               ^^^^^^^^^
+12|
+13|     return x;
+Error in file (wandelt\errors\type_mismatches.wdt) in row 11 in column 28
+Binary operator '+' cannot be applied to different types 'int32' and 'bool'. Unless you are doing a cast operation, please check the types of the operands.
+*/

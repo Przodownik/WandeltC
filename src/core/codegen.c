@@ -14,6 +14,9 @@ typedef struct _CodegenContext
 	LLVMContextRef llvm_context;
 	LLVMModuleRef llvm_module;
 	LLVMBuilderRef llvm_builder;
+
+	LLVMTypeRef bool_type;
+	LLVMTypeRef int32_type;
 } CodegenContext;
 
 LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression);
@@ -24,7 +27,9 @@ LLVMValueRef codegen_emit_constant_expression(CodegenContext* context, Expressio
 	switch (expression->type->kind)
 	{
 	case TYPE_KIND_INT_32:
-		return LLVMConstInt(LLVMInt32TypeInContext(context->llvm_context), expression->constant.int_value, false);
+		return LLVMConstInt(context->int32_type, expression->constant.int_value, false);
+	case TYPE_KIND_BOOL:
+		return LLVMConstInt(context->bool_type, expression->constant.bool_value, false);
 	default:
 		break;
 	}
@@ -32,10 +37,33 @@ LLVMValueRef codegen_emit_constant_expression(CodegenContext* context, Expressio
 	ASSERT(false, "Invalid literal type: %d\n", expression->type->kind);
 }
 
+LLVMTypeRef codegen_emit_type(CodegenContext* context, Type* type)
+{
+	switch (type->kind)
+	{
+	case TYPE_KIND_INT_32:
+		return context->int32_type;
+	case TYPE_KIND_BOOL:
+		return context->bool_type;
+	default:
+		break;
+	}
+
+	ASSERT(false, "Invalid type: %d\n", type->kind);
+}
+
 LLVMValueRef codegen_emit_cast_bool_to_int32(CodegenContext* context, LLVMValueRef value)
 {
-	LLVMTypeRef int32_type = LLVMIntTypeInContext(context->llvm_context, 32);
-	LLVMValueRef casted    = LLVMBuildZExt(context->llvm_builder, value, int32_type, "bool.to.int");
+	LLVMValueRef casted = LLVMBuildZExt(context->llvm_builder, value, context->int32_type, "bool.to.int");
+
+	return casted;
+}
+
+LLVMValueRef codegen_emit_cast_int32_to_bool(CodegenContext* context, LLVMValueRef value)
+{
+	// 0 - false, anything else - true
+	LLVMValueRef casted = LLVMBuildICmp(context->llvm_builder, LLVMIntNE, value,
+	                                    LLVMConstInt(context->int32_type, 0, false), "int.to.bool");
 
 	return casted;
 }
@@ -137,8 +165,10 @@ LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expres
 	case EXPRESSION_BINARY:
 		return codegen_emit_binary_expression(context, expression);
 	case EXPRESSION_IDENTIFIER: {
-		return LLVMBuildLoad2(context->llvm_builder, LLVMInt32TypeInContext(context->llvm_context),
-		                      expression->identifier.refered->handle, expression->identifier.name);
+		LLVMTypeRef type = codegen_emit_type(context, expression->type);
+
+		return LLVMBuildLoad2(context->llvm_builder, type, expression->identifier.refered->handle,
+		                      expression->identifier.name);
 	}
 	default:
 		break;
@@ -161,9 +191,9 @@ void codegen_emit_return_statement(CodegenContext* context, Statement* statement
 
 void codegen_emit_variable_declaration(CodegenContext* context, Statement* statement)
 {
+	LLVMTypeRef type         = codegen_emit_type(context, statement->declaration.declaration->variable.type);
 	Declaration* declaration = statement->declaration.declaration;
-	LLVMTypeRef int32_type   = LLVMIntTypeInContext(context->llvm_context, 32);
-	LLVMValueRef variable    = LLVMBuildAlloca(context->llvm_builder, int32_type, declaration->variable.name);
+	LLVMValueRef variable    = LLVMBuildAlloca(context->llvm_builder, type, declaration->variable.name);
 	LLVMValueRef value       = codegen_emit_expression(context, declaration->variable.initializer);
 	LLVMBuildStore(context->llvm_builder, value, variable);
 
@@ -221,9 +251,8 @@ void codegen_emit_function(CodegenContext* context, Declaration* declaration)
 {
 	FunctionSignature fn_signature = declaration->function.signature;
 
-	LLVMTypeRef int32_type = LLVMIntTypeInContext(context->llvm_context, 32);
-
-	LLVMTypeRef func_type = LLVMFunctionType(int32_type, NULL, 0, false);
+	LLVMTypeRef type      = codegen_emit_type(context, declaration->function.signature.return_type);
+	LLVMTypeRef func_type = LLVMFunctionType(type, nullptr, 0, false);
 
 	LLVMValueRef function = LLVMAddFunction(context->llvm_module, fn_signature.name, func_type);
 	declaration->handle   = function;
@@ -284,6 +313,9 @@ void codegen_generate(CompilerBuildOptions* build_options)
 	context.llvm_context = LLVMContextCreate();
 	context.llvm_module  = LLVMModuleCreateWithNameInContext("module:core", context.llvm_context);
 	context.llvm_builder = LLVMCreateBuilder();
+
+	context.bool_type  = LLVMInt1TypeInContext(context.llvm_context);
+	context.int32_type = LLVMInt32TypeInContext(context.llvm_context);
 
 	PlatformTarget platform_target = codegen_initialize_target();
 
