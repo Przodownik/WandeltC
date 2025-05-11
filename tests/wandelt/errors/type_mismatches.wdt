@@ -13,6 +13,21 @@ fn int32 main2()
     return x;
 }
 
+fn int32 main3()
+{
+    bool x = bool((23 + 17) / 4) + 1;
+    bool x = 12;
+
+    return int32(bool(int32(x) + 12) > bool(12));
+}
+
+fn int32 main4()
+{
+    bool x = 12;
+
+    return x;
+}
+
 /*
 #expectfail
 4|     bool y = false;
@@ -33,4 +48,24 @@ Binary operator '+' cannot be applied to different types 'int32' and 'bool'. Unl
 13|     return x;
 Error in file (wandelt\errors\type_mismatches.wdt) in row 11 in column 28
 Binary operator '+' cannot be applied to different types 'int32' and 'bool'. Unless you are doing a cast operation, please check the types of the operands.
+
+
+16| fn int32 main3()
+17| {
+18|     bool x = bool((23 + 17) / 4) + 1;
+                 ^^^^^^^^^^^^^^^^^^^^^^^
+19|     bool x = 12;
+20|
+Error in file (wandelt\errors\type_mismatches.wdt) in row 18 in column 14
+Binary operator '+' cannot be applied to different types 'bool' and 'int32'. Unless you are doing a cast operation, please check the types of the operands.
+
+
+24| fn int32 main4()
+25| {
+26|     bool x = 12;
+        ^^^^^^^^^^^^
+27|
+28|     return x;
+Error in file (wandelt\errors\type_mismatches.wdt) in row 26 in column 5
+Variable 'x' of type 'bool' cannot be initialized with expression of type 'int32'.
 */

@@ -55,6 +55,17 @@ typedef enum _Visibility
 	VISIBILITY_PRIVATE
 } Visibility;
 
+typedef enum _ResolveStatus
+{
+	RESOLVE_STATUS_UNRESOLVED = 0,
+	RESOLVE_STATUS_RESOLVING,
+	RESOLVE_STATUS_RESOLVED,
+} ResolveStatus;
+
+#define TOKEN_TYPE_KINDS      \
+	case TOKEN_INT32_KEYWORD: \
+	case TOKEN_BOOL_KEYWORD
+
 typedef enum _TypeKind
 {
 	TYPE_KIND_VOID = 0,
@@ -68,6 +79,12 @@ typedef struct _Type
 {
 	TypeKind kind;
 } Type;
+
+typedef struct _TypeInfo
+{
+	ResolveStatus resolve_status;
+	Type* type;
+} TypeInfo;
 
 const char* type_kind_to_string(TypeKind kind);
 
@@ -104,6 +121,7 @@ typedef struct _Declaration
 	DeclKind kind;
 	Visibility visibility;
 	SourceSpan source_span;
+	ResolveStatus resolve_status;
 	void* handle;
 
 	union {
@@ -205,6 +223,7 @@ typedef enum _ExpressionKind
 	EXPRESSION_UNARY,
 	EXPRESSION_GROUP,
 	EXPRESSION_IDENTIFIER,
+	EXPRESSION_CAST,
 } ExpressionKind;
 
 typedef enum _ConstantType
@@ -248,10 +267,25 @@ typedef struct _IdentifierExpression
 	Declaration* refered; // declaration the identifier refers to (resolved during semantic analysis!)
 } IdentifierExpression;
 
+typedef enum _CastKind
+{
+	CAST_INVALID = 0,
+	CAST_BOOL_TO_INT32,
+	CAST_INT32_TO_BOOL,
+} CastKind;
+
+typedef struct _CastExpression
+{
+	Expression* expression;
+	Type* cast_to;
+	CastKind cast_kind;
+} CastExpression;
+
 typedef struct _Expression
 {
 	ExpressionKind kind;
 	SourceSpan source_span;
+	ResolveStatus resolve_status;
 	Type* type; // resultant type of the expression
 
 	union {
@@ -260,6 +294,7 @@ typedef struct _Expression
 		UnaryExpression unary;
 		GroupedExpression group;
 		IdentifierExpression identifier;
+		CastExpression cast;
 	};
 } Expression;
 

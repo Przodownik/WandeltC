@@ -20,10 +20,6 @@ extern Context global_context;               // from compiler_internal.h
 	case TOKEN_PLUS:           \
 	case TOKEN_MINUS
 
-#define TOKEN_TYPE_KINDS      \
-	case TOKEN_INT32_KEYWORD: \
-	case TOKEN_BOOL_KEYWORD
-
 static Declaration invalid_declaration = {.kind = DECLARATION_INVALID};
 static Statement invalid_statement     = {.type = DECLARATION_INVALID};
 static Expression invalid_expression   = {.kind = EXPRESSION_INVALID};
@@ -240,6 +236,7 @@ Expression* parse_integer_constant_expression(Parser* parser)
 	expression->constant.int_value = atoi(parser->lexer->current_token.lexeme);
 	expression->type               = *mapped_type;
 	expression->constant.type      = CONSTANT_TYPE_INT_32;
+	expression->resolve_status     = RESOLVE_STATUS_RESOLVED;
 	expression->source_span        = parser->lexer->current_token.source_span;
 
 	parser_advance(parser); // consume the number
@@ -256,6 +253,7 @@ Expression* parse_boolean_constant_expression(Parser* parser)
 	expression->constant.bool_value = parser->lexer->current_token.type == TOKEN_TRUE_KEYWORD;
 	expression->type                = *mapped_type;
 	expression->constant.type       = CONSTANT_TYPE_BOOL;
+	expression->resolve_status      = RESOLVE_STATUS_RESOLVED;
 	expression->source_span         = parser->lexer->current_token.source_span;
 
 	parser_advance(parser); // consume the bool
@@ -276,7 +274,7 @@ Expression* parse_constant_expression(Parser* parser)
 		break;
 	}
 
-	ASSERT(false, "Invalid constant expression type!");
+	UNREACHABLE;
 }
 
 Expression* parse_grouped_expression(Parser* parser)
@@ -302,6 +300,39 @@ Expression* parse_grouped_expression(Parser* parser)
 	return expression;
 }
 
+Expression* parse_cast_expression(Parser* parser)
+{
+	Expression* expression     = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind           = EXPRESSION_CAST;
+	expression->resolve_status = RESOLVE_STATUS_UNRESOLVED; // cast_kind must be resolved by sema
+
+	Token type_token = parser->lexer->current_token;
+
+	if (!parse_type(parser, &expression->cast.cast_to))
+		return &invalid_expression;
+
+	expression->type = expression->cast.cast_to;
+
+	if (!parser_expect(parser, TOKEN_OPEN_PAREN))
+		return &invalid_expression;
+
+	parser_advance(parser); // consume (
+
+	expression->cast.expression = parse_expression(parser);
+
+	if (expression->cast.expression->kind == EXPRESSION_INVALID)
+		return &invalid_expression;
+
+	if (!parser_expect(parser, TOKEN_CLOSE_PAREN))
+		return &invalid_expression;
+
+	Token close_paren_token = parser_get_token_and_advance(parser); // consume )
+
+	expression->source_span = extend_span_with_token(type_token.source_span, close_paren_token.source_span);
+
+	return expression;
+}
+
 Expression* parse_primary_expression(Parser* parser)
 {
 	switch (parser->lexer->current_token.type)
@@ -322,6 +353,9 @@ Expression* parse_primary_expression(Parser* parser)
 		parser_advance(parser); // consume the identifier
 
 		return expression;
+	TOKEN_TYPE_KINDS:
+		return parse_cast_expression(parser);
+		break;
 	default:
 		parser_report_error(&parser->lexer->current_token.source_span,
 		                    "Expected an " YHRT("expression") ", but received a '" YHRT("%s") "'",
@@ -449,6 +483,7 @@ Statement* parse_variable_declaration_statement(Parser* parser)
 
 	statement->declaration.declaration       = arena_allocator_allocate(&declaration_allocator, sizeof(Declaration));
 	statement->declaration.declaration->kind = DECLARATION_VARIABLE;
+	statement->declaration.declaration->resolve_status = RESOLVE_STATUS_UNRESOLVED;
 
 	if (!parse_type(parser, &statement->declaration.declaration->variable.type))
 		return &invalid_statement;
@@ -562,8 +597,9 @@ Declaration* parse_top_level_statement(Parser* parser)
 	switch (lexer->current_token.type)
 	{
 	case TOKEN_FUNCTION_KEYWORD:
-		new_declaration       = arena_allocator_allocate(&declaration_allocator, sizeof(Declaration));
-		new_declaration->kind = DECLARATION_FUNCTION;
+		new_declaration                 = arena_allocator_allocate(&declaration_allocator, sizeof(Declaration));
+		new_declaration->kind           = DECLARATION_FUNCTION;
+		new_declaration->resolve_status = RESOLVE_STATUS_UNRESOLVED;
 
 		if (!parse_function_signature(parser, &new_declaration->function.signature))
 			return &invalid_declaration;

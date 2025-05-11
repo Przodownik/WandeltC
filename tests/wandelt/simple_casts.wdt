@@ -1,0 +1,27 @@
+fn int32 main()
+{
+    bool x = bool((23 + 17) / 4);
+
+    return int32(bool(int32(x) + 12) > bool(12));
+}
+
+/*
+#expect
+; ModuleID = 'module:core'
+source_filename = "main.wdt"
+target datalayout = ""
+target triple = ""
+
+define i32 @main() {
+entry:
+  %x = alloca i1, align 1
+  store i1 true, ptr %x, align 1
+  %x1 = load i1, ptr %x, align 1
+  %bool.to.int = zext i1 %x1 to i32
+  %add = add i32 %bool.to.int, 12
+  %int.to.bool = icmp ne i32 %add, 0
+  %greater = icmp sgt i1 %int.to.bool, true
+  %bool.to.int2 = zext i1 %greater to i32
+  ret i32 %bool.to.int2
+}
+*/

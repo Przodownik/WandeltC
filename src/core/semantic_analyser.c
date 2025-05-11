@@ -100,9 +100,19 @@ Declaration* sema_resolve_identifier_expression(SemaContext* sema_context, Expre
 			if (first->type == STATEMENT_DECLARATION)
 			{
 				Declaration* declaration = first->declaration.declaration;
+
 				if (declaration->kind == DECLARATION_VARIABLE &&
 				    strcmp(declaration->variable.name, expression->identifier.name) == 0)
 				{
+					if (declaration->resolve_status == RESOLVE_STATUS_RESOLVING)
+					{
+						sema_report_error(
+						    &expression->source_span,
+						    "Variable '%s' is being resolved recursively. Please check for circular dependencies.",
+						    expression->identifier.name);
+						return nullptr;
+					}
+
 					return declaration;
 				}
 			}
@@ -161,6 +171,9 @@ Type* sema_deduce_type_for_expression(SemaContext* sema_context, Expression* exp
 	case EXPRESSION_IDENTIFIER:
 		expression->type = expression->identifier.refered->variable.type;
 		break;
+	case EXPRESSION_CAST:
+		// Already set by the parser
+		break;
 	default:
 		ASSERT(false, "Invalid expression kind: %d\n", expression->kind);
 		break;
@@ -169,7 +182,19 @@ Type* sema_deduce_type_for_expression(SemaContext* sema_context, Expression* exp
 	return expression->type;
 }
 
-bool sema_analyse_expression(SemaContext* sema_context, Expression* expression)
+bool sema_analyse_expression(SemaContext* sema_context, Expression* expression);
+
+CastKind sema_resolve_cast_kind(Type* cast_to, Type* expression_type)
+{
+	if (cast_to->kind == TYPE_KIND_BOOL && expression_type->kind == TYPE_KIND_INT_32)
+		return CAST_INT32_TO_BOOL;
+	else if (cast_to->kind == TYPE_KIND_INT_32 && expression_type->kind == TYPE_KIND_BOOL)
+		return CAST_BOOL_TO_INT32;
+
+	return CAST_INVALID;
+}
+
+bool sema_analyse_expression_internal(SemaContext* sema_context, Expression* expression)
 {
 	switch (expression->kind)
 	{
@@ -194,12 +219,42 @@ bool sema_analyse_expression(SemaContext* sema_context, Expression* expression)
 		break;
 	case EXPRESSION_CONSTANT:
 		break;
+	case EXPRESSION_CAST:
+		if (!sema_analyse_expression(sema_context, expression->cast.expression))
+			return false;
+
+		expression->cast.cast_kind =
+		    sema_resolve_cast_kind(expression->cast.cast_to, expression->cast.expression->type);
+		break;
 	default:
 		ASSERT(false, "Invalid expression kind: %d\n", expression->kind);
 		break;
 	}
 
+	expression->resolve_status = RESOLVE_STATUS_RESOLVED;
+
 	return sema_deduce_type_for_expression(sema_context, expression) != nullptr;
+}
+
+bool sema_analyse_expression(SemaContext* sema_context, Expression* expression)
+{
+	switch (expression->resolve_status)
+	{
+	case RESOLVE_STATUS_UNRESOLVED:
+		expression->resolve_status = RESOLVE_STATUS_RESOLVING;
+		return sema_analyse_expression_internal(sema_context, expression);
+	case RESOLVE_STATUS_RESOLVING:
+		sema_report_error(&expression->source_span,
+		                  "Expression '%s' is being resolved recursively. Please check for circular dependencies.",
+		                  expression->identifier.name);
+		return false;
+	case RESOLVE_STATUS_RESOLVED:
+		return true;
+	default:
+		break;
+	}
+
+	UNREACHABLE;
 }
 
 bool sema_analyse_return_statement(SemaContext* sema_context, Statement* statement)
@@ -222,6 +277,8 @@ bool sema_analyse_statement(SemaContext* sema_context, Statement* statement)
 		switch (statement->declaration.declaration->kind)
 		{
 		case DECLARATION_VARIABLE:
+			statement->declaration.declaration->resolve_status = RESOLVE_STATUS_RESOLVING;
+
 			if (!sema_analyse_expression(sema_context, statement->declaration.declaration->variable.initializer))
 				return false;
 
@@ -237,6 +294,8 @@ bool sema_analyse_statement(SemaContext* sema_context, Statement* statement)
 				                  type_kind_to_string(initializer_type->kind));
 				return false;
 			}
+
+			statement->declaration.declaration->resolve_status = RESOLVE_STATUS_RESOLVED;
 
 			return true;
 		case DECLARATION_FUNCTION:
@@ -277,7 +336,8 @@ bool sema_analyse_function_declaration(SemaContext* sema_context, Declaration* d
 
 	// TODO: verify that function return type matches those with the return statements, or not require return if void
 
-	Statement* function_body = declaration->function.body;
+	Statement* function_body    = declaration->function.body;
+	declaration->resolve_status = RESOLVE_STATUS_RESOLVED;
 
 	vector_push(sema_context->analysed_functions, declaration);
 

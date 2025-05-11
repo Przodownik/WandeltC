@@ -154,6 +154,23 @@ LLVMValueRef codegen_emit_binary_expression(CodegenContext* context, Expression*
 	ASSERT(false, "Invalid binary operator: %d\n", expression->binary.operator);
 }
 
+LLVMValueRef codegen_emit_cast_expression(CodegenContext* context, Expression* expression)
+{
+	LLVMValueRef value = codegen_emit_expression(context, expression->cast.expression);
+
+	switch (expression->cast.cast_kind)
+	{
+	case CAST_INT32_TO_BOOL:
+		return codegen_emit_cast_int32_to_bool(context, value);
+	case CAST_BOOL_TO_INT32:
+		return codegen_emit_cast_bool_to_int32(context, value);
+	default:
+		break;
+	}
+
+	UNREACHABLE;
+}
+
 LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression)
 {
 	switch (expression->kind)
@@ -170,6 +187,8 @@ LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expres
 		return LLVMBuildLoad2(context->llvm_builder, type, expression->identifier.refered->handle,
 		                      expression->identifier.name);
 	}
+	case EXPRESSION_CAST:
+		return codegen_emit_cast_expression(context, expression);
 	default:
 		break;
 	}
@@ -284,6 +303,25 @@ PlatformTarget codegen_initialize_target(void)
 	LLVMInitializeX86Target();
 	LLVMInitializeX86Disassembler();
 	LLVMInitializeX86TargetMC();
+
+	/*
+	    LLVMInitializeAllAsmParsers();
+	    LLVMInitializeAllAsmPrinters();
+	    LLVMInitializeAllTargetInfos();
+	    LLVMInitializeAllTargets();
+	    LLVMInitializeAllDisassemblers();
+	    LLVMInitializeAllTargetMCs();
+
+	    LLVMTargetRef Target = LLVMGetFirstTarget();
+	    while (Target)
+	    {
+	        const char* Name        = LLVMGetTargetName(Target);
+	        const char* Description = LLVMGetTargetDescription(Target);
+	        printf("Target: %s (%s)\n", Name, Description);
+	        Target = LLVMGetNextTarget(Target);
+	    }
+	    return;
+	*/
 
 	PlatformTarget platform_target;
 	platform_target.target_triple        = LLVM_DEFAULT_TARGET_TRIPLE;

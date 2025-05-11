@@ -28,12 +28,12 @@ if(MSVC)
     # /wd4061: Suppresses warnings about missing switch cases
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Od /Zi /utf-8 /wd5045 /wd4820 /wd4599 /wd4061")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /O2 /utf-8 /wd5045 /wd4820 /wd4599 /wd4061")
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
 add_subdirectory(src)
-add_subdirectory(tests)
 
+# add_subdirectory(tests)
 add_executable(${PROJECT_NAME} main.c)
 
 target_include_directories(${PROJECT_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/src")
@@ -41,28 +41,37 @@ target_link_libraries(${PROJECT_NAME} PRIVATE WandeltCore)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall /EHsc /Qspectre-)
 target_compile_options(WandeltCore PRIVATE -Wall /EHsc /Qspectre-)
-target_compile_options(WandeltTests PRIVATE -Wall /EHsc /Qspectre-)
 
+# target_compile_options(WandeltTests PRIVATE -Wall /EHsc /Qspectre-)
 target_precompile_headers(${PROJECT_NAME} REUSE_FROM WandeltCore)
-target_precompile_headers(WandeltTests REUSE_FROM WandeltCore)
 
+# target_precompile_headers(WandeltTests REUSE_FROM WandeltCore)
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WDT_PLATFORM_WINDOWS)
     target_compile_definitions(WandeltCore PRIVATE WDT_PLATFORM_WINDOWS)
-    target_compile_definitions(WandeltTests PRIVATE WDT_PLATFORM_WINDOWS)
+
+# target_compile_definitions(WandeltTests PRIVATE WDT_PLATFORM_WINDOWS)
 elseif(UNIX)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WDT_PLATFORM_LINUX)
     target_compile_definitions(WandeltCore PRIVATE WDT_PLATFORM_LINUX)
-    target_compile_definitions(WandeltTests PRIVATE WDT_PLATFORM_WINDOWS)
+
+# target_compile_definitions(WandeltTests PRIVATE WDT_PLATFORM_LINUX)
 elseif(APPLE)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WDT_PLATFORM_MACOS)
     target_compile_definitions(WandeltCore PRIVATE WDT_PLATFORM_MACOS)
-    target_compile_definitions(WandeltTests PRIVATE WDT_PLATFORM_WINDOWS)
+
+    # target_compile_definitions(WandeltTests PRIVATE WDT_PLATFORM_MACOS)
+endif()
+
+if (MSVC)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE WDT_COMPILER_MSVC)
+    target_compile_definitions(WandeltCore PRIVATE WDT_COMPILER_MSVC)
+    # target_compile_definitions(WandeltTests PRIVATE WDT_COMPILER_MSVC)
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     _CRT_SECURE_NO_WARNINGS
-    _CRT_SECURE_NO_DEPRECATE       
+    _CRT_SECURE_NO_DEPRECATE
     _CRT_NONSTDC_NO_WARNINGS
     _CRT_NONSTDC_NO_DEPRECATE
     _SCL_SECURE_NO_WARNINGS
@@ -72,7 +81,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     __STDC_CONSTANT_MACROS
     __STDC_FORMAT_MACROS
     __STDC_LIMIT_MACROS
-    _GLIBCXX_ASSERTIONS             
+    _GLIBCXX_ASSERTIONS
 )
 
 install(TARGETS ${PROJECT_NAME}

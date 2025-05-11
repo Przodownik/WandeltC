@@ -121,7 +121,7 @@ NORETURN static void exit_compiler(int exit_value)
 		exit_compiler(-1);                                                                                        \
 	} while (0)
 
-#define UNREACHABLE     FATAL_ERROR("Should be unreachable")
+#define UNREACHABLE     FATAL_ERROR("Unreachable code reached")
 #define NOT_IMPLEMENTED FATAL_ERROR("Not implemented yet")
 #define NOT_SUPPORTED   FATAL_ERROR("Not supported functionality")
 
