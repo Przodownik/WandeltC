@@ -13,6 +13,6 @@ typedef struct _Clock
 
 Clock clock_create(void);
 
-Clock clock_restart_from_now(Clock* clock);
+void clock_restart_from_now(Clock* clock);
 
 float64 clock_get_elapsed_time(Clock* clock);

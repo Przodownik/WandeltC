@@ -18,7 +18,7 @@ Clock clock_create(void)
 	return (Clock){start.QuadPart, freq.QuadPart};
 }
 
-Clock clock_restart_from_now(Clock* clock)
+void clock_restart_from_now(Clock* clock)
 {
 	LARGE_INTEGER freq, start;
 	QueryPerformanceFrequency(&freq);

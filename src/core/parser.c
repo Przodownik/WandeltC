@@ -50,19 +50,19 @@ void parser_advance(Parser* parser)
 		return;
 }
 
-inline Token parser_get_token(Parser* parser)
+inline Token parser_get_current_token(Parser* parser)
 {
 	return parser->lexer->current_token;
 }
 
 inline TokenType parser_get_token_type(Parser* parser)
 {
-	return parser->lexer->current_token.type;
+	return parser_get_current_token(parser).type;
 }
 
 Token parser_get_token_and_advance(Parser* parser)
 {
-	Token token = parser->lexer->current_token;
+	Token token = parser_get_current_token(parser);
 
 	parser_advance(parser);
 
@@ -71,7 +71,7 @@ Token parser_get_token_and_advance(Parser* parser)
 
 bool parser_expect(Parser* parser, TokenType expected_type)
 {
-	Token token = parser->lexer->current_token;
+	Token token = parser_get_current_token(parser);
 
 	if (token.type != expected_type)
 	{

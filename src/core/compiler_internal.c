@@ -137,7 +137,7 @@ void emit_expression_json(Expression* expr, cJSON* parent)
 	{
 	case EXPRESSION_CONSTANT:
 		cJSON_AddStringToObject(obj, "kind", "literal");
-		cJSON_AddNumberToObject(obj, "value", expr->constant.int_value);
+		cJSON_AddNumberToObject(obj, "value", (double)expr->constant.int_value);
 		break;
 
 	case EXPRESSION_GROUP:
