@@ -1,6 +1,6 @@
-fn int32 main()
+fn int main()
 {
-    int32 a = 2400;
+    int a = 2400;
 
     a = 400;
 

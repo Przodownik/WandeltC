@@ -186,9 +186,9 @@ bool sema_analyse_expression(SemaContext* sema_context, Expression* expression);
 
 CastKind sema_resolve_cast_kind(Type* cast_to, Type* expression_type)
 {
-	if (cast_to->kind == TYPE_KIND_BOOL && expression_type->kind == TYPE_KIND_INT_32)
+	if (cast_to->kind == TYPE_KIND_BOOL && expression_type->kind == TYPE_KIND_INT)
 		return CAST_INT32_TO_BOOL;
-	else if (cast_to->kind == TYPE_KIND_INT_32 && expression_type->kind == TYPE_KIND_BOOL)
+	else if (cast_to->kind == TYPE_KIND_INT && expression_type->kind == TYPE_KIND_BOOL)
 		return CAST_BOOL_TO_INT32;
 
 	return CAST_INVALID;
@@ -374,10 +374,10 @@ void sema_analyse_parsed_context(Context* context)
 		}
 		else
 		{
-			if (main_function->function.signature.return_type->kind != TYPE_KIND_INT_32)
+			if (main_function->function.signature.return_type->kind != TYPE_KIND_INT)
 			{
 				sema_report_warning(&main_function->function.signature.source_span,
-				                    "Main function should return '" YHOT("int32") "', but it returns '" YHOT("%s") "'",
+				                    "Main function should return '" YHOT("int") "', but it returns '" YHOT("%s") "'",
 				                    type_kind_to_string(main_function->function.signature.return_type->kind));
 			}
 		}

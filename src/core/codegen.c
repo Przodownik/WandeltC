@@ -26,7 +26,7 @@ LLVMValueRef codegen_emit_constant_expression(CodegenContext* context, Expressio
 {
 	switch (expression->type->kind)
 	{
-	case TYPE_KIND_INT_32:
+	case TYPE_KIND_INT:
 		return LLVMConstInt(context->int32_type, expression->constant.int_value, false);
 	case TYPE_KIND_BOOL:
 		return LLVMConstInt(context->bool_type, expression->constant.bool_value, false);
@@ -41,7 +41,7 @@ LLVMTypeRef codegen_emit_type(CodegenContext* context, Type* type)
 {
 	switch (type->kind)
 	{
-	case TYPE_KIND_INT_32:
+	case TYPE_KIND_INT:
 		return context->int32_type;
 	case TYPE_KIND_BOOL:
 		return context->bool_type;

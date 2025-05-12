@@ -1,4 +1,4 @@
-fn int32 main()
+fn int main()
 {
     return ((19 + 2 - 1) * 2) / 4;
 }

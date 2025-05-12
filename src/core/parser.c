@@ -14,12 +14,6 @@ extern Context global_context;               // from compiler_internal.h
 	if (!x)                \
 	return false
 
-#define TOKEN_BINARY_OPERATORS \
-	case TOKEN_STAR:           \
-	case TOKEN_SLASH:          \
-	case TOKEN_PLUS:           \
-	case TOKEN_MINUS
-
 static Declaration invalid_declaration = {.kind = DECLARATION_INVALID};
 static Statement invalid_statement     = {.type = DECLARATION_INVALID};
 static Expression invalid_expression   = {.kind = EXPRESSION_INVALID};
@@ -182,7 +176,7 @@ bool parse_type(Parser* parser, Type** type)
 	{
 		parser_report_error(&parser->lexer->current_token.source_span,
 		                    "Expected a valid return type and received '" YHRT("%s") "'. Standard types include " YHRT(
-		                        "void") ", " YHRT("int32") ", etc.",
+		                        "void") ", " YHRT("int") ", etc.",
 		                    parser->lexer->current_token.lexeme);
 
 		return false;
@@ -229,13 +223,13 @@ bool parse_function_signature(Parser* parser, FunctionSignature* signature)
 
 Expression* parse_integer_constant_expression(Parser* parser)
 {
-	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_INT32_KEYWORD));
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_INT_KEYWORD));
 
 	Expression* expression         = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
 	expression->kind               = EXPRESSION_CONSTANT;
 	expression->constant.int_value = atoi(parser->lexer->current_token.lexeme);
 	expression->type               = *mapped_type;
-	expression->constant.type      = CONSTANT_TYPE_INT_32;
+	expression->constant.type      = CONSTANT_TYPE_INT;
 	expression->resolve_status     = RESOLVE_STATUS_RESOLVED;
 	expression->source_span        = parser->lexer->current_token.source_span;
 

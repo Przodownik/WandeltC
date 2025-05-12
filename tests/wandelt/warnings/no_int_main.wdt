@@ -10,5 +10,5 @@ fn bool main()
 2| {
 3|     return false;
 Warning in file (wandelt\warnings\no_int_main.wdt) in row 1 in column 1
-Main function should return 'int32', but it returns 'bool'
+Main function should return 'int', but it returns 'bool'
 */

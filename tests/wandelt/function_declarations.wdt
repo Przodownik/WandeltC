@@ -1,16 +1,16 @@
-fn int32 testfunc1()
+fn int testfunc1()
 {
     return 123;
 }
 
-fn int32 testfunc2()
+fn int testfunc2()
 {
     return 123 / 23 * 123 + 123 - 123 * 123 / 123;
 }
 
-fn int32 main()
+fn int main()
 {
-    int32 a = 3400;
+    int a = 3400;
 
     return a;
 }

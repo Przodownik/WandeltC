@@ -1,10 +1,10 @@
-fn int32 main()
+fn int main()
 {
-    int32 a = 3400;
-    int32 b = a;
+    int a = 3400;
+    int b = a;
         
     {
-        int32 d = a + b;
+        int d = a + b;
         return d;
     }
 }

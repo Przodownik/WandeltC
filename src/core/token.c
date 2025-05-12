@@ -8,12 +8,6 @@ const char* token_type_to_string(TokenType type)
 		return "fn";
 	case TOKEN_RETURN_KEYWORD:
 		return "return";
-	case TOKEN_VOID_KEYWORD:
-		return "void";
-	case TOKEN_INT32_KEYWORD:
-		return "int32";
-	case TOKEN_BOOL_KEYWORD:
-		return "bool";
 	case TOKEN_TRUE_KEYWORD:
 		return "true";
 	case TOKEN_FALSE_KEYWORD:
@@ -22,6 +16,32 @@ const char* token_type_to_string(TokenType type)
 		return "public";
 	case TOKEN_PRIVATE_KEYWORD:
 		return "private";
+
+	case TOKEN_VOID_KEYWORD:
+		return "void";
+	case TOKEN_BOOL_KEYWORD:
+		return "bool";
+	case TOKEN_CHAR_KEYWORD:
+		return "char";
+	case TOKEN_UCHAR_KEYWORD:
+		return "uchar";
+	case TOKEN_SHORT_KEYWORD:
+		return "short";
+	case TOKEN_USHORT_KEYWORD:
+		return "ushort";
+	case TOKEN_INT_KEYWORD:
+		return "int";
+	case TOKEN_UINT_KEYWORD:
+		return "uint";
+	case TOKEN_LONG_KEYWORD:
+		return "long";
+	case TOKEN_ULONG_KEYWORD:
+		return "ulong";
+	case TOKEN_FLOAT_KEYWORD:
+		return "float";
+	case TOKEN_DOUBLE_KEYWORD:
+		return "double";
+
 	case TOKEN_OPEN_PAREN:
 		return "(";
 	case TOKEN_CLOSE_PAREN:
@@ -94,9 +114,10 @@ const char* token_type_to_string(TokenType type)
 		return "EOF";
 	case TOKEN_KEYWORD_COUNT:
 	default:
-		ASSERT(false, "Invalid token! %i", type);
 		break;
 	}
+
+	UNREACHABLE;
 }
 
 const char* token_type_to_enum_stringified(TokenType type)
@@ -107,12 +128,6 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_FUNCTION_KEYWORD";
 	case TOKEN_RETURN_KEYWORD:
 		return "TOKEN_RETURN_KEYWORD";
-	case TOKEN_INT32_KEYWORD:
-		return "TOKEN_INT32_KEYWORD";
-	case TOKEN_VOID_KEYWORD:
-		return "TOKEN_VOID_KEYWORD";
-	case TOKEN_BOOL_KEYWORD:
-		return "TOKEN_BOOL_KEYWORD";
 	case TOKEN_TRUE_KEYWORD:
 		return "TOKEN_TRUE_KEYWORD";
 	case TOKEN_FALSE_KEYWORD:
@@ -121,6 +136,32 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_PUBLIC_KEYWORD";
 	case TOKEN_PRIVATE_KEYWORD:
 		return "TOKEN_PRIVATE_KEYWORD";
+
+	case TOKEN_VOID_KEYWORD:
+		return "TOKEN_VOID_KEYWORD";
+	case TOKEN_BOOL_KEYWORD:
+		return "TOKEN_BOOL_KEYWORD";
+	case TOKEN_CHAR_KEYWORD:
+		return "TOKEN_CHAR_KEYWORD";
+	case TOKEN_UCHAR_KEYWORD:
+		return "TOKEN_UCHAR_KEYWORD";
+	case TOKEN_SHORT_KEYWORD:
+		return "TOKEN_SHORT_KEYWORD";
+	case TOKEN_USHORT_KEYWORD:
+		return "TOKEN_USHORT_KEYWORD";
+	case TOKEN_INT_KEYWORD:
+		return "TOKEN_INT_KEYWORD";
+	case TOKEN_UINT_KEYWORD:
+		return "TOKEN_UINT_KEYWORD";
+	case TOKEN_LONG_KEYWORD:
+		return "TOKEN_LONG_KEYWORD";
+	case TOKEN_ULONG_KEYWORD:
+		return "TOKEN_ULONG_KEYWORD";
+	case TOKEN_FLOAT_KEYWORD:
+		return "TOKEN_FLOAT_KEYWORD";
+	case TOKEN_DOUBLE_KEYWORD:
+		return "TOKEN_DOUBLE_KEYWORD";
+
 	case TOKEN_OPEN_PAREN:
 		return "TOKEN_OPEN_PAREN";
 	case TOKEN_CLOSE_PAREN:
@@ -193,7 +234,13 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_EOF";
 	case TOKEN_KEYWORD_COUNT:
 	default:
-		ASSERT(false, "Invalid token! %i", type);
 		break;
 	}
+
+	UNREACHABLE;
+}
+
+bool is_token_type_a_type_token(TokenType type)
+{
+	return type > TOKEN_PRIVATE_KEYWORD && type < TOKEN_OPEN_PAREN;
 }

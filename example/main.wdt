@@ -1,10 +1,6 @@
-fn int32 main()
+fn int main()
 {
-    bool boolean = false;
+    bool x = bool((23 + 17) / 4);
 
-    int32 a = 2400;
-
-    a = 400;
-
-    return a;
+    return int(bool(int(x) + 12) > bool(12));
 }

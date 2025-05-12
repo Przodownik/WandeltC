@@ -1,8 +1,8 @@
-fn int32 main()
+fn int main()
 {
     bool x = bool((23 + 17) / 4);
 
-    return int32(bool(int32(x) + 12) > bool(12));
+    return int(bool(int(x) + 12) > bool(12));
 }
 
 /*
