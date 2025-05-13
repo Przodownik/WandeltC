@@ -150,14 +150,14 @@ typedef struct _Declaration
 	};
 } Declaration;
 
-typedef enum _StatementType
+typedef enum _StatementKind
 {
 	STATEMENT_INVALID = 0,
 	STATEMENT_COMPOUND,
 	STATEMENT_DECLARATION,
 	STATEMENT_EXPRESSION,
 	STATEMENT_RETURN,
-} StatementType;
+} StatementKind;
 
 typedef struct _CompountStatement
 {
@@ -181,7 +181,7 @@ typedef struct _ReturnStatement
 
 typedef struct _Statement
 {
-	StatementType type;
+	StatementKind kind;
 	SourceSpan source_span;
 	Statement* next; // next statement in the compound or null if it's the last one
 

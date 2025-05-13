@@ -192,6 +192,25 @@ bool lexer_make_new_verror_token_at_lexing_start(Lexer* lexer, const char* msg, 
 	return false;
 }
 
+bool lexer_make_new_verror_token_at_lexing_start_with_length(Lexer* lexer, uint32 length, const char* msg, ...)
+{
+	SourceSpan span;
+	span.source_file = lexer->source_file;
+	span.row         = lexer->current_row_number;
+	span.column =
+	    get_display_column(lexer->line_start_char, (uint32)(lexer->lexing_start - lexer->line_start_char) + 1);
+	span.length = length;
+
+	va_list list;
+	va_start(list, msg);
+	diagnostics_verror_along_span(&span, msg, list);
+	va_end(list);
+
+	global_context.error_count++;
+
+	return false;
+}
+
 bool lexer_scan_digit(Lexer* lexer)
 {
 	while (is_character_a_digit(lexer_get_current_char(lexer))) lexer_advance(lexer);
@@ -213,6 +232,74 @@ bool lexer_scan_digit(Lexer* lexer)
 
 	return lexer_make_new_token(lexer, is_float ? TOKEN_FLOAT : TOKEN_INTEGER,
 	                            cstring_copy_part_into_buffer(lexer->lexing_start, lexeme_length, buffer));
+}
+
+bool lexer_scan_character(Lexer* lexer)
+{
+	lexer_start_new_token(lexer); // basically reset the lexeme start after the ' character
+
+	const char* current = lexer->current_char;
+
+	char c = 0;
+	while ((c = *lexer->current_char) != '\'')
+	{
+		if (c == '\n' || c == '\0')
+		{
+			return lexer_make_new_verror_token_at_lexing_start(lexer, "Unterminated character literal found!");
+		}
+
+		lexer->current_char++;
+	}
+
+	uint32 lexeme_length = (uint32)(lexer->current_char - lexer->lexing_start);
+
+	if (lexeme_length == 0)
+	{
+		return lexer_make_new_verror_token_at_lexing_start(
+		    lexer, "Empty character literal found! The character literal must contain one character!");
+	}
+
+	if (lexeme_length > 1)
+	{
+		return lexer_make_new_verror_token_at_lexing_start_with_length(
+		    lexer, lexeme_length, "Invalid character literal found! Expected a single character!");
+	}
+
+	char* buffer = arena_allocator_allocate(&string_allocator, lexeme_length + 1);
+	lexer_make_new_token(lexer, TOKEN_CHARACTER,
+	                     cstring_copy_part_into_buffer(lexer->lexing_start, lexeme_length, buffer));
+
+	lexer_advance(lexer); // skip the closing quote '
+
+	return true;
+}
+
+bool lexer_scan_string(Lexer* lexer)
+{
+	lexer_start_new_token(lexer); // basically reset the lexeme start after the " character
+
+	const char* current = lexer->current_char;
+
+	char c = 0;
+	while ((c = *lexer->current_char) != '"')
+	{
+		if (c == '\n' || c == '\0')
+		{
+			return lexer_make_new_verror_token_at_lexing_start(lexer, "Unterminated string literal found!");
+		}
+
+		lexer->current_char++;
+	}
+
+	uint32 lexeme_length = (uint32)(lexer->current_char - lexer->lexing_start);
+
+	char* buffer = arena_allocator_allocate(&string_allocator, lexeme_length + 1);
+	lexer_make_new_token(lexer, TOKEN_STRING,
+	                     cstring_copy_part_into_buffer(lexer->lexing_start, lexeme_length, buffer));
+
+	lexer_advance(lexer); // skip the closing quote "
+
+	return true;
 }
 
 bool _lexer_try_get_next_token(Lexer* lexer)
@@ -312,6 +399,10 @@ bool _lexer_try_get_next_token(Lexer* lexer)
 		return lexer_make_new_token(lexer, TOKEN_COLON, ":");
 	case ';':
 		return lexer_make_new_token(lexer, TOKEN_SEMICOLON, ";");
+	case '\'':
+		return lexer_scan_character(lexer);
+	case '"':
+		return lexer_scan_string(lexer);
 	default:
 		if (is_character_a_digit(current))
 		{

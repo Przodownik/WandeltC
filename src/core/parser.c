@@ -15,7 +15,7 @@ extern Context global_context;               // from compiler_internal.h
 	return false
 
 static Declaration invalid_declaration = {.kind = DECLARATION_INVALID};
-static Statement invalid_statement     = {.type = DECLARATION_INVALID};
+static Statement invalid_statement     = {.kind = DECLARATION_INVALID};
 static Expression invalid_expression   = {.kind = EXPRESSION_INVALID};
 
 Parser parser_create(Context* context, Lexer* lexer)
@@ -447,7 +447,7 @@ Statement* parse_return_statement(Parser* parser)
 	Token return_token = parser_get_token_and_advance(parser); // consume return
 
 	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
-	statement->type      = STATEMENT_RETURN;
+	statement->kind      = STATEMENT_RETURN;
 
 	// if no expression, just return;
 	if (parser_get_token_type(parser) != TOKEN_SEMICOLON)
@@ -473,7 +473,7 @@ Statement* parse_variable_declaration_statement(Parser* parser)
 	Token type_token = parser->lexer->current_token;
 
 	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
-	statement->type      = STATEMENT_DECLARATION;
+	statement->kind      = STATEMENT_DECLARATION;
 
 	statement->declaration.declaration       = arena_allocator_allocate(&declaration_allocator, sizeof(Declaration));
 	statement->declaration.declaration->kind = DECLARATION_VARIABLE;
@@ -496,6 +496,9 @@ Statement* parse_variable_declaration_statement(Parser* parser)
 
 	statement->declaration.declaration->variable.initializer = parse_expression(parser);
 
+	if (statement->declaration.declaration->variable.initializer->kind == EXPRESSION_INVALID)
+		return &invalid_statement;
+
 	if (!parser_expect(parser, TOKEN_SEMICOLON))
 		return &invalid_statement;
 
@@ -511,7 +514,7 @@ Statement* parse_expression_statement(Parser* parser)
 	Token type_token = parser->lexer->current_token;
 
 	Statement* statement             = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
-	statement->type                  = STATEMENT_EXPRESSION;
+	statement->kind                  = STATEMENT_EXPRESSION;
 	statement->expression.expression = parse_expression(parser);
 
 	if (!parser_expect(parser, TOKEN_SEMICOLON))
@@ -562,14 +565,14 @@ Statement* parse_compound_statement(Parser* parser)
 	Token open_brace_token = parser_get_token_and_advance(parser); // consume {
 
 	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
-	statement->type      = STATEMENT_COMPOUND;
+	statement->kind      = STATEMENT_COMPOUND;
 
 	Statement** last_ptr = &statement->compound.first;
 
 	while (!try_advance(parser, TOKEN_CLOSE_BRACE)) // process till the end of }
 	{
 		Statement* inner = parse_statement(parser);
-		if (inner->type == STATEMENT_INVALID)
+		if (inner->kind == STATEMENT_INVALID)
 			return &invalid_statement;
 
 		*last_ptr = inner;
@@ -599,7 +602,7 @@ Declaration* parse_top_level_statement(Parser* parser)
 			return &invalid_declaration;
 
 		Statement* body = parse_compound_statement(parser);
-		if (body->type == STATEMENT_INVALID)
+		if (body->kind == STATEMENT_INVALID)
 			return &invalid_declaration;
 
 		new_declaration->function.body = body;

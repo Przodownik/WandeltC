@@ -116,6 +116,20 @@ bool lexer_make_new_verror_token_at_lexing_start(Lexer* lexer, const char* msg, 
 bool lexer_scan_digit(Lexer* lexer);
 
 /**
+ * @brief Consumes the character in the lexer and creates a new token with the consumed character.
+ * @param lexer The lexer instance.
+ * @return True if the token was created successfully, false otherwise.
+ */
+bool lexer_scan_character(Lexer* lexer);
+
+/**
+ * @brief Consumes the string in the lexer and creates a new token with the consumed string.
+ * @param lexer The lexer instance.
+ * @return True if the token was created successfully, false otherwise.
+ */
+bool lexer_scan_string(Lexer* lexer);
+
+/**
  * @brief Tries to get the next token from the lexer.
  * @warning Lexer internal use only, use lexer_try_get_next_token instead!
  * @param lexer The lexer instance.

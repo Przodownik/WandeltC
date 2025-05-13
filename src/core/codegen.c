@@ -232,7 +232,7 @@ void codegen_emit_compound_statement(CodegenContext* context, Statement* stateme
 
 void codegen_emit_statement(CodegenContext* context, Statement* statement)
 {
-	switch (statement->type)
+	switch (statement->kind)
 	{
 	case STATEMENT_DECLARATION: {
 		Declaration* declaration = statement->declaration.declaration;

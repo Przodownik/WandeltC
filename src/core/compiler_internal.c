@@ -232,7 +232,7 @@ void emit_statement_json(Statement* stmt, cJSON* array)
 
 	cJSON* obj = cJSON_CreateObject();
 
-	switch (stmt->type)
+	switch (stmt->kind)
 	{
 	case STATEMENT_RETURN:
 		cJSON_AddStringToObject(obj, "type", "return");

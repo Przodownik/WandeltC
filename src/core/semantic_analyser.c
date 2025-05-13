@@ -97,7 +97,7 @@ Declaration* sema_resolve_identifier_expression(SemaContext* sema_context, Expre
 
 		while (first != nullptr)
 		{
-			if (first->type == STATEMENT_DECLARATION)
+			if (first->kind == STATEMENT_DECLARATION)
 			{
 				Declaration* declaration = first->declaration.declaration;
 
@@ -267,7 +267,7 @@ bool sema_analyse_return_statement(SemaContext* sema_context, Statement* stateme
 
 bool sema_analyse_statement(SemaContext* sema_context, Statement* statement)
 {
-	switch (statement->type)
+	switch (statement->kind)
 	{
 	case STATEMENT_COMPOUND:
 		return sema_analyse_compound_statement(sema_context, statement);
@@ -309,7 +309,7 @@ bool sema_analyse_statement(SemaContext* sema_context, Statement* statement)
 	case STATEMENT_EXPRESSION:
 		return sema_analyse_expression(sema_context, statement->expression.expression);
 	default:
-		ASSERT(false, "Invalid statement kind: %d\n", statement->type);
+		ASSERT(false, "Invalid statement kind: %d\n", statement->kind);
 		break;
 	}
 
