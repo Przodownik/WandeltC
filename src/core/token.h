@@ -72,7 +72,8 @@ typedef enum _TokenType
 	// other
 	TOKEN_IDENTIFIER, // e.g. somename1
 	TOKEN_INTEGER,    // e.g. 12
-	TOKEN_FLOAT,      // e.g.12.34
+	TOKEN_FLOAT,      // e.g. 12.34f
+	TOKEN_DOUBLE,     // e.g. 12.34d
 	TOKEN_STRING,     // e.g."string"
 	TOKEN_CHARACTER,  // e.g.'c'
 	TOKEN_UNKNOWN,

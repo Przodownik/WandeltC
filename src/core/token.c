@@ -104,6 +104,8 @@ const char* token_type_to_string(TokenType type)
 		return "integer";
 	case TOKEN_FLOAT:
 		return "float";
+	case TOKEN_DOUBLE:
+		return "double";
 	case TOKEN_STRING:
 		return "string";
 	case TOKEN_CHARACTER:
@@ -224,6 +226,8 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_INTEGER";
 	case TOKEN_FLOAT:
 		return "TOKEN_FLOAT";
+	case TOKEN_DOUBLE:
+		return "TOKEN_DOUBLE";
 	case TOKEN_STRING:
 		return "TOKEN_STRING";
 	case TOKEN_CHARACTER:

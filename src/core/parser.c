@@ -2,6 +2,7 @@
 
 #include "core/token.h"
 #include "diagnostics.h"
+#include "utils/defines.h"
 
 extern ArenaAllocator declaration_allocator; // from compiler_internal.h
 extern ArenaAllocator statement_allocator;   // from compiler_internal.h
@@ -238,6 +239,57 @@ Expression* parse_integer_constant_expression(Parser* parser)
 	return expression;
 }
 
+Expression* parse_float_constant_expression(Parser* parser)
+{
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_FLOAT_KEYWORD));
+
+	Expression* expression           = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind                 = EXPRESSION_CONSTANT;
+	expression->constant.float_value = (float)atof(parser->lexer->current_token.lexeme);
+	expression->type                 = *mapped_type;
+	expression->constant.type        = CONSTANT_TYPE_FLOAT;
+	expression->resolve_status       = RESOLVE_STATUS_RESOLVED;
+	expression->source_span          = parser->lexer->current_token.source_span;
+
+	parser_advance(parser); // consume the number
+
+	return expression;
+}
+
+Expression* parse_double_constant_expression(Parser* parser)
+{
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_DOUBLE_KEYWORD));
+
+	Expression* expression            = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind                  = EXPRESSION_CONSTANT;
+	expression->constant.double_value = atof(parser->lexer->current_token.lexeme);
+	expression->type                  = *mapped_type;
+	expression->constant.type         = CONSTANT_TYPE_DOUBLE;
+	expression->resolve_status        = RESOLVE_STATUS_RESOLVED;
+	expression->source_span           = parser->lexer->current_token.source_span;
+
+	parser_advance(parser); // consume the number
+
+	return expression;
+}
+
+Expression* parse_character_constant_expression(Parser* parser)
+{
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_CHAR_KEYWORD));
+
+	Expression* expression         = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind               = EXPRESSION_CONSTANT;
+	expression->constant.int_value = parser->lexer->current_token.lexeme[0];
+	expression->type               = *mapped_type;
+	expression->constant.type      = CONSTANT_TYPE_INT;
+	expression->resolve_status     = RESOLVE_STATUS_RESOLVED;
+	expression->source_span        = parser->lexer->current_token.source_span;
+
+	parser_advance(parser); // consume the character
+
+	return expression;
+}
+
 Expression* parse_boolean_constant_expression(Parser* parser)
 {
 	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_BOOL_KEYWORD));
@@ -261,6 +313,15 @@ Expression* parse_constant_expression(Parser* parser)
 	{
 	case TOKEN_INTEGER:
 		return parse_integer_constant_expression(parser);
+	case TOKEN_FLOAT:
+		return parse_float_constant_expression(parser);
+	case TOKEN_DOUBLE:
+		return parse_double_constant_expression(parser);
+	case TOKEN_CHARACTER:
+		return parse_character_constant_expression(parser);
+	case TOKEN_STRING:
+		NOT_IMPLEMENTED;
+		break;
 	case TOKEN_TRUE_KEYWORD:
 	case TOKEN_FALSE_KEYWORD:
 		return parse_boolean_constant_expression(parser);
@@ -333,6 +394,9 @@ Expression* parse_primary_expression(Parser* parser)
 	{
 	case TOKEN_INTEGER:
 	case TOKEN_FLOAT:
+	case TOKEN_DOUBLE:
+	case TOKEN_CHARACTER:
+	case TOKEN_STRING:
 	case TOKEN_TRUE_KEYWORD:
 	case TOKEN_FALSE_KEYWORD:
 		return parse_constant_expression(parser);
@@ -354,6 +418,7 @@ Expression* parse_primary_expression(Parser* parser)
 		parser_report_error(&parser->lexer->current_token.source_span,
 		                    "Expected an " YHRT("expression") ", but received a '" YHRT("%s") "'",
 		                    parser->lexer->current_token.lexeme);
+
 		return &invalid_expression;
 	}
 }
@@ -489,8 +554,15 @@ Statement* parse_variable_declaration_statement(Parser* parser)
 
 	parser_advance(parser); // consume the identifier
 
-	if (!parser_expect(parser, TOKEN_EQUAL))
+	if (parser_get_token_type(parser) != TOKEN_EQUAL)
+	{
+		parser_report_error(&parser->lexer->current_token.source_span,
+		                    "Variables must be initialized, when declared! Expected an assignment operator '=' after "
+		                    "the variable name '" YHRT("%s") "'.",
+		                    statement->declaration.declaration->variable.name);
+
 		return &invalid_statement;
+	}
 
 	parser_advance(parser); // consume the equal sign
 

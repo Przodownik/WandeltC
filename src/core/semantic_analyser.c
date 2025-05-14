@@ -184,14 +184,168 @@ Type* sema_deduce_type_for_expression(SemaContext* sema_context, Expression* exp
 
 bool sema_analyse_expression(SemaContext* sema_context, Expression* expression);
 
+// Lookup table for cast kinds
+static const CastKind cast_kind_table[TYPE_KIND_DOUBLE + 1][TYPE_KIND_DOUBLE + 1] =
+    {
+        [TYPE_KIND_BOOL] =
+            {
+                [TYPE_KIND_BOOL]   = CAST_INVALID, // No-op cast
+                [TYPE_KIND_CHAR]   = CAST_BOOL_TO_CHAR,
+                [TYPE_KIND_UCHAR]  = CAST_BOOL_TO_UCHAR,
+                [TYPE_KIND_SHORT]  = CAST_BOOL_TO_SHORT,
+                [TYPE_KIND_USHORT] = CAST_BOOL_TO_USHORT,
+                [TYPE_KIND_INT]    = CAST_BOOL_TO_INT,
+                [TYPE_KIND_UINT]   = CAST_BOOL_TO_UINT,
+                [TYPE_KIND_LONG]   = CAST_BOOL_TO_LONG,
+                [TYPE_KIND_ULONG]  = CAST_BOOL_TO_ULONG,
+                [TYPE_KIND_FLOAT]  = CAST_BOOL_TO_FLOAT,
+                [TYPE_KIND_DOUBLE] = CAST_BOOL_TO_DOUBLE,
+            },
+        [TYPE_KIND_CHAR] =
+            {
+                [TYPE_KIND_BOOL]   = CAST_CHAR_TO_BOOL,
+                [TYPE_KIND_CHAR]   = CAST_INVALID, // No-op
+                [TYPE_KIND_UCHAR]  = CAST_CHAR_TO_UCHAR,
+                [TYPE_KIND_SHORT]  = CAST_CHAR_TO_SHORT,
+                [TYPE_KIND_USHORT] = CAST_CHAR_TO_USHORT,
+                [TYPE_KIND_INT]    = CAST_CHAR_TO_INT,
+                [TYPE_KIND_UINT]   = CAST_CHAR_TO_UINT,
+                [TYPE_KIND_LONG]   = CAST_CHAR_TO_LONG,
+                [TYPE_KIND_ULONG]  = CAST_CHAR_TO_ULONG,
+                [TYPE_KIND_FLOAT]  = CAST_CHAR_TO_FLOAT,
+                [TYPE_KIND_DOUBLE] = CAST_CHAR_TO_DOUBLE,
+            },
+        [TYPE_KIND_UCHAR] =
+            {
+                [TYPE_KIND_BOOL]   = CAST_UCHAR_TO_BOOL,
+                [TYPE_KIND_CHAR]   = CAST_UCHAR_TO_CHAR,
+                [TYPE_KIND_UCHAR]  = CAST_INVALID, // No-op
+                [TYPE_KIND_SHORT]  = CAST_UCHAR_TO_SHORT,
+                [TYPE_KIND_USHORT] = CAST_UCHAR_TO_USHORT,
+                [TYPE_KIND_INT]    = CAST_UCHAR_TO_INT,
+                [TYPE_KIND_UINT]   = CAST_UCHAR_TO_UINT,
+                [TYPE_KIND_LONG]   = CAST_UCHAR_TO_LONG,
+                [TYPE_KIND_ULONG]  = CAST_UCHAR_TO_ULONG,
+                [TYPE_KIND_FLOAT]  = CAST_UCHAR_TO_FLOAT,
+                [TYPE_KIND_DOUBLE] = CAST_UCHAR_TO_DOUBLE,
+            },
+        [TYPE_KIND_SHORT] =
+            {
+                [TYPE_KIND_BOOL]   = CAST_SHORT_TO_BOOL,
+                [TYPE_KIND_CHAR]   = CAST_SHORT_TO_CHAR,
+                [TYPE_KIND_UCHAR]  = CAST_SHORT_TO_UCHAR,
+                [TYPE_KIND_SHORT]  = CAST_INVALID, // No-op
+                [TYPE_KIND_USHORT] = CAST_SHORT_TO_USHORT,
+                [TYPE_KIND_INT]    = CAST_SHORT_TO_INT,
+                [TYPE_KIND_UINT]   = CAST_SHORT_TO_UINT,
+                [TYPE_KIND_LONG]   = CAST_SHORT_TO_LONG,
+                [TYPE_KIND_ULONG]  = CAST_SHORT_TO_ULONG,
+                [TYPE_KIND_FLOAT]  = CAST_SHORT_TO_FLOAT,
+                [TYPE_KIND_DOUBLE] = CAST_SHORT_TO_DOUBLE,
+            },
+        [TYPE_KIND_USHORT] =
+            {
+                [TYPE_KIND_BOOL]   = CAST_USHORT_TO_BOOL,
+                [TYPE_KIND_CHAR]   = CAST_USHORT_TO_CHAR,
+                [TYPE_KIND_UCHAR]  = CAST_USHORT_TO_UCHAR,
+                [TYPE_KIND_SHORT]  = CAST_USHORT_TO_SHORT,
+                [TYPE_KIND_USHORT] = CAST_INVALID, // No-op
+                [TYPE_KIND_INT]    = CAST_USHORT_TO_INT,
+                [TYPE_KIND_UINT]   = CAST_USHORT_TO_UINT,
+                [TYPE_KIND_LONG]   = CAST_USHORT_TO_LONG,
+                [TYPE_KIND_ULONG]  = CAST_USHORT_TO_ULONG,
+                [TYPE_KIND_FLOAT]  = CAST_USHORT_TO_FLOAT,
+                [TYPE_KIND_DOUBLE] = CAST_USHORT_TO_DOUBLE,
+            },
+        [TYPE_KIND_INT] =
+            {
+                [TYPE_KIND_BOOL]   = CAST_INT_TO_BOOL,
+                [TYPE_KIND_CHAR]   = CAST_INT_TO_CHAR,
+                [TYPE_KIND_UCHAR]  = CAST_INT_TO_UCHAR,
+                [TYPE_KIND_SHORT]  = CAST_INT_TO_SHORT,
+                [TYPE_KIND_USHORT] = CAST_INT_TO_USHORT,
+                [TYPE_KIND_INT]    = CAST_INVALID, // No-op
+                [TYPE_KIND_UINT]   = CAST_INT_TO_UINT,
+                [TYPE_KIND_LONG]   = CAST_INT_TO_LONG,
+                [TYPE_KIND_ULONG]  = CAST_INT_TO_ULONG,
+                [TYPE_KIND_FLOAT]  = CAST_INT_TO_FLOAT,
+                [TYPE_KIND_DOUBLE] = CAST_INT_TO_DOUBLE,
+            },
+        [TYPE_KIND_UINT] =
+            {
+                [TYPE_KIND_BOOL]   = CAST_UINT_TO_BOOL,
+                [TYPE_KIND_CHAR]   = CAST_UINT_TO_CHAR,
+                [TYPE_KIND_UCHAR]  = CAST_UINT_TO_UCHAR,
+                [TYPE_KIND_SHORT]  = CAST_UINT_TO_SHORT,
+                [TYPE_KIND_USHORT] = CAST_UINT_TO_USHORT,
+                [TYPE_KIND_INT]    = CAST_UINT_TO_INT,
+                [TYPE_KIND_UINT]   = CAST_INVALID, // No-op
+                [TYPE_KIND_LONG]   = CAST_UINT_TO_LONG,
+                [TYPE_KIND_ULONG]  = CAST_UINT_TO_ULONG,
+                [TYPE_KIND_FLOAT]  = CAST_UINT_TO_FLOAT,
+                [TYPE_KIND_DOUBLE] = CAST_UINT_TO_DOUBLE,
+            },
+        [TYPE_KIND_LONG] =
+            {
+                [TYPE_KIND_BOOL]   = CAST_LONG_TO_BOOL,
+                [TYPE_KIND_CHAR]   = CAST_LONG_TO_CHAR,
+                [TYPE_KIND_UCHAR]  = CAST_LONG_TO_UCHAR,
+                [TYPE_KIND_SHORT]  = CAST_LONG_TO_SHORT,
+                [TYPE_KIND_USHORT] = CAST_LONG_TO_USHORT,
+                [TYPE_KIND_INT]    = CAST_LONG_TO_INT,
+                [TYPE_KIND_UINT]   = CAST_LONG_TO_UINT,
+                [TYPE_KIND_LONG]   = CAST_INVALID, // No-op
+                [TYPE_KIND_ULONG]  = CAST_LONG_TO_ULONG,
+                [TYPE_KIND_FLOAT]  = CAST_LONG_TO_FLOAT,
+                [TYPE_KIND_DOUBLE] = CAST_LONG_TO_DOUBLE,
+            },
+        [TYPE_KIND_ULONG] =
+            {
+                [TYPE_KIND_BOOL]   = CAST_ULONG_TO_BOOL,
+                [TYPE_KIND_CHAR]   = CAST_ULONG_TO_CHAR,
+                [TYPE_KIND_UCHAR]  = CAST_ULONG_TO_UCHAR,
+                [TYPE_KIND_SHORT]  = CAST_ULONG_TO_SHORT,
+                [TYPE_KIND_USHORT] = CAST_ULONG_TO_USHORT,
+                [TYPE_KIND_INT]    = CAST_ULONG_TO_INT,
+                [TYPE_KIND_UINT]   = CAST_ULONG_TO_UINT,
+                [TYPE_KIND_LONG]   = CAST_ULONG_TO_LONG,
+                [TYPE_KIND_ULONG]  = CAST_INVALID, // No-op
+                [TYPE_KIND_FLOAT]  = CAST_ULONG_TO_FLOAT,
+                [TYPE_KIND_DOUBLE] = CAST_ULONG_TO_DOUBLE,
+            },
+        [TYPE_KIND_FLOAT] =
+            {
+                [TYPE_KIND_BOOL]   = CAST_FLOAT_TO_BOOL,
+                [TYPE_KIND_CHAR]   = CAST_FLOAT_TO_CHAR,
+                [TYPE_KIND_UCHAR]  = CAST_FLOAT_TO_UCHAR,
+                [TYPE_KIND_SHORT]  = CAST_FLOAT_TO_SHORT,
+                [TYPE_KIND_USHORT] = CAST_FLOAT_TO_USHORT,
+                [TYPE_KIND_INT]    = CAST_FLOAT_TO_INT,
+                [TYPE_KIND_UINT]   = CAST_FLOAT_TO_UINT,
+                [TYPE_KIND_LONG]   = CAST_FLOAT_TO_LONG,
+                [TYPE_KIND_ULONG]  = CAST_FLOAT_TO_ULONG,
+                [TYPE_KIND_FLOAT]  = CAST_INVALID, // No-op
+                [TYPE_KIND_DOUBLE] = CAST_FLOAT_TO_DOUBLE,
+            },
+        [TYPE_KIND_DOUBLE] =
+            {
+                [TYPE_KIND_BOOL]   = CAST_DOUBLE_TO_BOOL,
+                [TYPE_KIND_CHAR]   = CAST_DOUBLE_TO_CHAR,
+                [TYPE_KIND_UCHAR]  = CAST_DOUBLE_TO_UCHAR,
+                [TYPE_KIND_SHORT]  = CAST_DOUBLE_TO_SHORT,
+                [TYPE_KIND_USHORT] = CAST_DOUBLE_TO_USHORT,
+                [TYPE_KIND_INT]    = CAST_DOUBLE_TO_INT,
+                [TYPE_KIND_UINT]   = CAST_DOUBLE_TO_UINT,
+                [TYPE_KIND_LONG]   = CAST_DOUBLE_TO_LONG,
+                [TYPE_KIND_ULONG]  = CAST_DOUBLE_TO_ULONG,
+                [TYPE_KIND_FLOAT]  = CAST_DOUBLE_TO_FLOAT,
+                [TYPE_KIND_DOUBLE] = CAST_INVALID, // No-op
+            },
+};
+
 CastKind sema_resolve_cast_kind(Type* cast_to, Type* expression_type)
 {
-	if (cast_to->kind == TYPE_KIND_BOOL && expression_type->kind == TYPE_KIND_INT)
-		return CAST_INT32_TO_BOOL;
-	else if (cast_to->kind == TYPE_KIND_INT && expression_type->kind == TYPE_KIND_BOOL)
-		return CAST_BOOL_TO_INT32;
-
-	return CAST_INVALID;
+	return cast_kind_table[expression_type->kind][cast_to->kind];
 }
 
 bool sema_analyse_expression_internal(SemaContext* sema_context, Expression* expression)
@@ -225,6 +379,15 @@ bool sema_analyse_expression_internal(SemaContext* sema_context, Expression* exp
 
 		expression->cast.cast_kind =
 		    sema_resolve_cast_kind(expression->cast.cast_to, expression->cast.expression->type);
+
+		if (expression->cast.cast_kind == CAST_INVALID)
+		{
+			sema_report_error(&expression->source_span, "Cannot cast from type '%s' to type '%s'.",
+			                  type_kind_to_string(expression->cast.expression->type->kind),
+			                  type_kind_to_string(expression->cast.cast_to->kind));
+			return false;
+		}
+
 		break;
 	default:
 		ASSERT(false, "Invalid expression kind: %d\n", expression->kind);

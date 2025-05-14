@@ -192,6 +192,24 @@ bool lexer_make_new_verror_token_at_lexing_start(Lexer* lexer, const char* msg, 
 	return false;
 }
 
+bool lexer_make_new_verror_token_at_current_position(Lexer* lexer, const char* msg, ...)
+{
+	SourceSpan span;
+	span.source_file = lexer->source_file;
+	span.row         = lexer->current_row_number;
+	span.column =
+	    get_display_column(lexer->line_start_char, (uint32)(lexer->current_char - lexer->line_start_char) + 1);
+	span.length = 1;
+
+	va_list list;
+	va_start(list, msg);
+	diagnostics_verror_along_span(&span, msg, list);
+	va_end(list);
+	global_context.error_count++;
+
+	return false;
+}
+
 bool lexer_make_new_verror_token_at_lexing_start_with_length(Lexer* lexer, uint32 length, const char* msg, ...)
 {
 	SourceSpan span;
@@ -215,8 +233,13 @@ bool lexer_scan_digit(Lexer* lexer)
 {
 	while (is_character_a_digit(lexer_get_current_char(lexer))) lexer_advance(lexer);
 
-	bool is_float = lexer_match(lexer, '.');
-	if (is_float)
+	TokenType type = TOKEN_INTEGER;
+
+	bool is_floating_point = lexer_match(lexer, '.');
+	bool is_float          = lexer_match(lexer, 'f');
+	bool is_double         = lexer_match(lexer, 'd');
+
+	if (is_floating_point)
 	{
 		lexer_advance(lexer);
 
@@ -224,14 +247,46 @@ bool lexer_scan_digit(Lexer* lexer)
 		{
 			lexer_advance(lexer);
 		}
+
+		if (lexer_match(lexer, 'f'))
+		{
+			type = TOKEN_FLOAT;
+		}
+		else if (lexer_match(lexer, 'd'))
+		{
+			type = TOKEN_DOUBLE;
+		}
+		else
+		{
+			return lexer_make_new_verror_token_at_current_position(
+			    lexer, "Invalid floating point literal found! Expected 'f' or 'd' at the end of "
+			           "the number.");
+		}
+
+		lexer_advance(lexer);
+	}
+	else if (is_float)
+	{
+		type = TOKEN_FLOAT;
+		lexer_advance(lexer);
+	}
+	else if (is_double)
+	{
+		type = TOKEN_DOUBLE;
+		lexer_advance(lexer);
 	}
 
 	uint32 lexeme_length = (uint32)(lexer->current_char - lexer->lexing_start);
 
+	if (type == TOKEN_FLOAT || type == TOKEN_DOUBLE)
+	{
+		// if we have a floating point number, we need to skip the 'f' or 'd' at the end
+		lexeme_length--;
+	}
+
 	char* buffer = arena_allocator_allocate(&string_allocator, lexeme_length + 1);
 
-	return lexer_make_new_token(lexer, is_float ? TOKEN_FLOAT : TOKEN_INTEGER,
-	                            cstring_copy_part_into_buffer(lexer->lexing_start, lexeme_length, buffer));
+	return lexer_make_new_token(lexer, type, cstring_copy_part_into_buffer(lexer->lexing_start, lexeme_length, buffer));
 }
 
 bool lexer_scan_character(Lexer* lexer)

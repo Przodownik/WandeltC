@@ -16,7 +16,12 @@ typedef struct _CodegenContext
 	LLVMBuilderRef llvm_builder;
 
 	LLVMTypeRef bool_type;
-	LLVMTypeRef int32_type;
+	LLVMTypeRef char_type;
+	LLVMTypeRef short_type;
+	LLVMTypeRef int_type;
+	LLVMTypeRef long_type;
+	LLVMTypeRef float_type;
+	LLVMTypeRef double_type;
 } CodegenContext;
 
 LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression);
@@ -26,45 +31,123 @@ LLVMValueRef codegen_emit_constant_expression(CodegenContext* context, Expressio
 {
 	switch (expression->type->kind)
 	{
-	case TYPE_KIND_INT:
-		return LLVMConstInt(context->int32_type, expression->constant.int_value, false);
 	case TYPE_KIND_BOOL:
 		return LLVMConstInt(context->bool_type, expression->constant.bool_value, false);
+	case TYPE_KIND_CHAR:
+		return LLVMConstInt(context->char_type, expression->constant.int_value, false);
+	case TYPE_KIND_UCHAR:
+		NOT_IMPLEMENTED;
+		break;
+	case TYPE_KIND_SHORT:
+	case TYPE_KIND_USHORT:
+		return LLVMConstInt(context->short_type, expression->constant.int_value, false);
+	case TYPE_KIND_INT:
+	case TYPE_KIND_UINT:
+		return LLVMConstInt(context->int_type, expression->constant.int_value, false);
+	case TYPE_KIND_LONG:
+	case TYPE_KIND_ULONG:
+		return LLVMConstInt(context->long_type, expression->constant.int_value, false);
+	case TYPE_KIND_FLOAT:
+		return LLVMConstReal(context->float_type, expression->constant.float_value);
+	case TYPE_KIND_DOUBLE:
+		return LLVMConstReal(context->double_type, expression->constant.double_value);
 	default:
 		break;
 	}
 
-	ASSERT(false, "Invalid literal type: %d\n", expression->type->kind);
+	UNREACHABLE;
 }
 
 LLVMTypeRef codegen_emit_type(CodegenContext* context, Type* type)
 {
 	switch (type->kind)
 	{
-	case TYPE_KIND_INT:
-		return context->int32_type;
 	case TYPE_KIND_BOOL:
 		return context->bool_type;
+	case TYPE_KIND_CHAR:
+	case TYPE_KIND_UCHAR:
+		return context->char_type;
+	case TYPE_KIND_SHORT:
+	case TYPE_KIND_USHORT:
+		return context->short_type;
+	case TYPE_KIND_INT:
+	case TYPE_KIND_UINT:
+		return context->int_type;
+	case TYPE_KIND_LONG:
+	case TYPE_KIND_ULONG:
+		return context->long_type;
+	case TYPE_KIND_FLOAT:
+		return context->float_type;
+	case TYPE_KIND_DOUBLE:
+		return context->double_type;
 	default:
 		break;
 	}
 
-	ASSERT(false, "Invalid type: %d\n", type->kind);
+	UNREACHABLE;
 }
 
-LLVMValueRef codegen_emit_cast_bool_to_int32(CodegenContext* context, LLVMValueRef value)
+LLVMValueRef codegen_emit_cast_bool_to_int(CodegenContext* context, LLVMValueRef value)
 {
-	LLVMValueRef casted = LLVMBuildZExt(context->llvm_builder, value, context->int32_type, "bool.to.int");
+	LLVMValueRef casted = LLVMBuildZExt(context->llvm_builder, value, context->int_type, "bool.to.int");
 
 	return casted;
 }
 
-LLVMValueRef codegen_emit_cast_int32_to_bool(CodegenContext* context, LLVMValueRef value)
+LLVMValueRef codegen_emit_cast_int_to_bool(CodegenContext* context, LLVMValueRef value)
 {
 	// 0 - false, anything else - true
 	LLVMValueRef casted = LLVMBuildICmp(context->llvm_builder, LLVMIntNE, value,
-	                                    LLVMConstInt(context->int32_type, 0, false), "int.to.bool");
+	                                    LLVMConstInt(context->int_type, 0, false), "int.to.bool");
 
+	return casted;
+}
+
+LLVMValueRef codegen_emit_char_to_uchar(CodegenContext* context, LLVMValueRef value)
+{
+	LLVMValueRef casted = LLVMBuildZExt(context->llvm_builder, value, context->char_type, "char.to.uchar");
+	return casted;
+}
+
+LLVMValueRef codegen_emit_short_to_ushort(CodegenContext* context, LLVMValueRef value)
+{
+	LLVMValueRef casted = LLVMBuildZExt(context->llvm_builder, value, context->short_type, "short.to.ushort");
+	return casted;
+}
+
+LLVMValueRef codegen_emit_cast_int_to_uint(CodegenContext* context, LLVMValueRef value)
+{
+	LLVMValueRef casted = LLVMBuildZExt(context->llvm_builder, value, context->int_type, "int.to.uint");
+	return casted;
+}
+
+LLVMValueRef codegen_emit_long_to_ulong(CodegenContext* context, LLVMValueRef value)
+{
+	LLVMValueRef casted = LLVMBuildZExt(context->llvm_builder, value, context->long_type, "long.to.ulong");
+	return casted;
+}
+
+LLVMValueRef codegen_emit_int_to_short(CodegenContext* context, LLVMValueRef value)
+{
+	LLVMValueRef casted = LLVMBuildTrunc(context->llvm_builder, value, context->short_type, "int.to.short");
+	return casted;
+}
+
+LLVMValueRef codegen_emit_int_to_ushort(CodegenContext* context, LLVMValueRef value)
+{
+	LLVMValueRef casted = LLVMBuildTrunc(context->llvm_builder, value, context->short_type, "int.to.ushort");
+	return casted;
+}
+
+LLVMValueRef codegen_emit_int_to_ulong(CodegenContext* context, LLVMValueRef value)
+{
+	LLVMValueRef casted = LLVMBuildZExt(context->llvm_builder, value, context->long_type, "int.to.ulong");
+	return casted;
+}
+
+LLVMValueRef codegen_emit_int_to_long(CodegenContext* context, LLVMValueRef value)
+{
+	LLVMValueRef casted = LLVMBuildSExt(context->llvm_builder, value, context->long_type, "int.to.long");
 	return casted;
 }
 
@@ -100,42 +183,42 @@ LLVMValueRef codegen_emit_binary_expression(CodegenContext* context, Expression*
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
-		return codegen_emit_cast_bool_to_int32(context,
-		                                       LLVMBuildICmp(context->llvm_builder, LLVMIntEQ, lhs, rhs, "equal"));
+		return codegen_emit_cast_bool_to_int(context,
+		                                     LLVMBuildICmp(context->llvm_builder, LLVMIntEQ, lhs, rhs, "equal"));
 	}
 	case BINARY_OPERATOR_NOT_EQUAL: {
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
-		return codegen_emit_cast_bool_to_int32(context,
-		                                       LLVMBuildICmp(context->llvm_builder, LLVMIntNE, lhs, rhs, "not.equal"));
+		return codegen_emit_cast_bool_to_int(context,
+		                                     LLVMBuildICmp(context->llvm_builder, LLVMIntNE, lhs, rhs, "not.equal"));
 	}
 	case BINARY_OPERATOR_GREATER: {
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
-		return codegen_emit_cast_bool_to_int32(context,
-		                                       LLVMBuildICmp(context->llvm_builder, LLVMIntSGT, lhs, rhs, "greater"));
+		return codegen_emit_cast_bool_to_int(context,
+		                                     LLVMBuildICmp(context->llvm_builder, LLVMIntSGT, lhs, rhs, "greater"));
 	}
 	case BINARY_OPERATOR_LESS: {
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
-		return codegen_emit_cast_bool_to_int32(context,
-		                                       LLVMBuildICmp(context->llvm_builder, LLVMIntSLT, lhs, rhs, "less"));
+		return codegen_emit_cast_bool_to_int(context,
+		                                     LLVMBuildICmp(context->llvm_builder, LLVMIntSLT, lhs, rhs, "less"));
 	}
 	case BINARY_OPERATOR_GREATER_OR_EQUAL: {
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
-		return codegen_emit_cast_bool_to_int32(
+		return codegen_emit_cast_bool_to_int(
 		    context, LLVMBuildICmp(context->llvm_builder, LLVMIntSGE, lhs, rhs, "greater.or.equal"));
 	}
 	case BINARY_OPERATOR_LESS_OR_EQUAL: {
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
-		return codegen_emit_cast_bool_to_int32(
+		return codegen_emit_cast_bool_to_int(
 		    context, LLVMBuildICmp(context->llvm_builder, LLVMIntSLE, lhs, rhs, "less.or.equal"));
 	}
 	case BINARY_OPERATOR_ASSIGN: {
@@ -160,15 +243,31 @@ LLVMValueRef codegen_emit_cast_expression(CodegenContext* context, Expression* e
 
 	switch (expression->cast.cast_kind)
 	{
-	case CAST_INT32_TO_BOOL:
-		return codegen_emit_cast_int32_to_bool(context, value);
-	case CAST_BOOL_TO_INT32:
-		return codegen_emit_cast_bool_to_int32(context, value);
+	case CAST_INT_TO_BOOL:
+		return codegen_emit_cast_int_to_bool(context, value);
+	case CAST_BOOL_TO_INT:
+		return codegen_emit_cast_bool_to_int(context, value);
+	case CAST_CHAR_TO_UCHAR:
+		return codegen_emit_char_to_uchar(context, value);
+	case CAST_SHORT_TO_USHORT:
+		return codegen_emit_short_to_ushort(context, value);
+	case CAST_INT_TO_UINT:
+		return codegen_emit_cast_int_to_uint(context, value);
+	case CAST_LONG_TO_ULONG:
+		return codegen_emit_long_to_ulong(context, value);
+	case CAST_INT_TO_SHORT:
+		return codegen_emit_int_to_short(context, value);
+	case CAST_INT_TO_LONG:
+		return codegen_emit_int_to_long(context, value);
+	case CAST_INT_TO_ULONG:
+		return codegen_emit_int_to_ulong(context, value);
+	case CAST_INT_TO_USHORT:
+		return codegen_emit_int_to_ushort(context, value);
 	default:
 		break;
 	}
 
-	UNREACHABLE;
+	NOT_IMPLEMENTED;
 }
 
 LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression)
@@ -352,8 +451,13 @@ void codegen_generate(CompilerBuildOptions* build_options)
 	context.llvm_module  = LLVMModuleCreateWithNameInContext("module:core", context.llvm_context);
 	context.llvm_builder = LLVMCreateBuilder();
 
-	context.bool_type  = LLVMInt1TypeInContext(context.llvm_context);
-	context.int32_type = LLVMInt32TypeInContext(context.llvm_context);
+	context.bool_type   = LLVMInt1TypeInContext(context.llvm_context);
+	context.char_type   = LLVMInt8TypeInContext(context.llvm_context);
+	context.short_type  = LLVMInt16TypeInContext(context.llvm_context);
+	context.int_type    = LLVMInt32TypeInContext(context.llvm_context);
+	context.long_type   = LLVMInt64TypeInContext(context.llvm_context);
+	context.float_type  = LLVMFloatTypeInContext(context.llvm_context);
+	context.double_type = LLVMDoubleTypeInContext(context.llvm_context);
 
 	PlatformTarget platform_target = codegen_initialize_target();
 
