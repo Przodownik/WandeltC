@@ -16,3 +16,5 @@ Clock clock_create(void);
 void clock_restart_from_now(Clock* clock);
 
 float64 clock_get_elapsed_time(Clock* clock);
+
+bool run_linker(const char* args_string);

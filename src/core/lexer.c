@@ -293,8 +293,6 @@ bool lexer_scan_character(Lexer* lexer)
 {
 	lexer_start_new_token(lexer); // basically reset the lexeme start after the ' character
 
-	const char* current = lexer->current_char;
-
 	char c = 0;
 	while ((c = *lexer->current_char) != '\'')
 	{
@@ -332,8 +330,6 @@ bool lexer_scan_character(Lexer* lexer)
 bool lexer_scan_string(Lexer* lexer)
 {
 	lexer_start_new_token(lexer); // basically reset the lexeme start after the " character
-
-	const char* current = lexer->current_char;
 
 	char c = 0;
 	while ((c = *lexer->current_char) != '"')
@@ -510,6 +506,8 @@ bool lexer_try_get_next_token(Lexer* lexer)
 
 		is_token_valid = lexer_try_get_next_token(lexer);
 	} while (!lexer_is_eof(lexer));
+
+	exit_compiler(-1);
 
 	return false;
 }

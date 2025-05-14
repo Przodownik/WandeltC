@@ -571,10 +571,10 @@ void codegen_generate(CompilerBuildOptions* build_options)
 
 	TRACE(ANSI_COLOR_CYAN "Linking started...\n" ANSI_COLOR_RESET);
 
-	// codegen_linker_link("main.exe");
-	const char* linker = "clang -fuse-ld=lld -Wl,/subsystem:console -o main.exe .\\main.obj";
+	const char* linker = "lld-link main.obj /subsystem:console /entry:mainCRTStartup /out:main.exe kernel32.lib "
+	                     "libcmt.lib /incremental /threads:2 /opt:noref";
 
-	if (system(linker) != 0)
+	if (!run_linker(linker))
 	{
 		ERROR("Failed to link executable 'main.exe' using command '%s'.\n", linker);
 		return;

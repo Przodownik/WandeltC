@@ -1,16 +1,16 @@
 #include "core/compiler.h"
 
-extern jmp_buf on_error_jump;           // from defines.h
+// extern jmp_buf on_error_jump;           // from defines.h
 extern ArenaAllocator string_allocator; // from compiler_internal.h
 
 int32 main(int32 argc, char** argv)
 {
-	int result = setjmp(on_error_jump);
+	/*int result = setjmp(on_error_jump);
 	if (result)
 	{
-		DEBUG_BREAK();
-		return result;
-	}
+	    DEBUG_BREAK();
+	    return result;
+	}*/
 
 	compiler_internal_initialize();
 
@@ -101,6 +101,7 @@ int32 main(int32 argc, char** argv)
 	compiler.build_options.lexer_debug  = true;
 	compiler.build_options.parsed_debug = true;
 
+	// compiler_lex(&compiler);
 	compiler_compile(&compiler);
 
 	vector_destroy(file_sources);

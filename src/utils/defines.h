@@ -100,11 +100,12 @@ static void __vprint(FILE* out, const char* fmt, ...)
 #define ERROR(fmt, ...)  fprintf(stderr, ANSI_COLOR_RED fmt ANSI_COLOR_RESET __VA_OPT__(, )##__VA_ARGS__)
 #define VERROR(fmt, ...) __vprint(stderr, fmt, __VA_ARGS__)
 
-static jmp_buf on_error_jump;
+// static jmp_buf on_error_jump;
 
 NORETURN static void exit_compiler(int exit_value)
 {
-	longjmp(on_error_jump, exit_value);
+	exit(exit_value);
+	// longjmp(on_error_jump, exit_value);
 }
 
 #define FATAL_ERROR(fmt, ...)                                                                                     \
