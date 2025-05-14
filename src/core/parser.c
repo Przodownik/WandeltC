@@ -589,12 +589,59 @@ Statement* parse_expression_statement(Parser* parser)
 	statement->kind                  = STATEMENT_EXPRESSION;
 	statement->expression.expression = parse_expression(parser);
 
+	if (statement->expression.expression->kind == EXPRESSION_INVALID)
+		return &invalid_statement;
+
 	if (!parser_expect(parser, TOKEN_SEMICOLON))
 		return &invalid_statement;
 
 	Token semicolon_token = parser_get_token_and_advance(parser); // consume ;
 
 	statement->source_span = extend_span_with_token(type_token.source_span, semicolon_token.source_span);
+
+	return statement;
+}
+
+Statement* parse_if_statement(Parser* parser)
+{
+	Token if_token = parser_get_token_and_advance(parser); // consume if
+
+	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
+	statement->kind      = STATEMENT_IF;
+
+	if (!parser_expect(parser, TOKEN_OPEN_PAREN))
+		return &invalid_statement;
+
+	parser_advance(parser); // consume (
+
+	statement->if_.condition = parse_expression(parser);
+
+	if (statement->if_.condition->kind == EXPRESSION_INVALID)
+		return &invalid_statement;
+
+	if (!parser_expect(parser, TOKEN_CLOSE_PAREN))
+		return &invalid_statement;
+
+	parser_advance(parser); // consume )
+
+	statement->if_.then_branch = parse_statement(parser);
+
+	if (statement->if_.then_branch->kind == STATEMENT_INVALID)
+		return &invalid_statement;
+
+	if (parser->lexer->current_token.type == TOKEN_ELSE_KEYWORD)
+	{
+		parser_advance(parser); // consume else
+
+		statement->if_.else_branch = parse_statement(parser);
+
+		if (statement->if_.else_branch->kind == STATEMENT_INVALID)
+			return &invalid_statement;
+	}
+
+	Token close_paren_token = parser->lexer->previous_token;
+
+	statement->source_span = extend_span_with_token(if_token.source_span, close_paren_token.source_span);
 
 	return statement;
 }
@@ -611,6 +658,9 @@ Statement* parse_statement(Parser* parser)
 
 	case TOKEN_RETURN_KEYWORD:
 		return parse_return_statement(parser);
+
+	case TOKEN_IF_KEYWORD:
+		return parse_if_statement(parser);
 
 	case TOKEN_OPEN_BRACE:
 		return parse_compound_statement(parser);

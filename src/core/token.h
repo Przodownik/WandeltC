@@ -20,6 +20,8 @@ typedef enum _TokenType
 	TOKEN_FALSE_KEYWORD,        // false
 	TOKEN_PUBLIC_KEYWORD,       // public
 	TOKEN_PRIVATE_KEYWORD,      // private
+	TOKEN_IF_KEYWORD,           // if
+	TOKEN_ELSE_KEYWORD,         // else
 
 	// builtin types
 	TOKEN_VOID_KEYWORD,   // void

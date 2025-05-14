@@ -16,6 +16,10 @@ const char* token_type_to_string(TokenType type)
 		return "public";
 	case TOKEN_PRIVATE_KEYWORD:
 		return "private";
+	case TOKEN_IF_KEYWORD:
+		return "if";
+	case TOKEN_ELSE_KEYWORD:
+		return "else";
 
 	case TOKEN_VOID_KEYWORD:
 		return "void";
@@ -138,6 +142,10 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_PUBLIC_KEYWORD";
 	case TOKEN_PRIVATE_KEYWORD:
 		return "TOKEN_PRIVATE_KEYWORD";
+	case TOKEN_IF_KEYWORD:
+		return "TOKEN_IF_KEYWORD";
+	case TOKEN_ELSE_KEYWORD:
+		return "TOKEN_ELSE_KEYWORD";
 
 	case TOKEN_VOID_KEYWORD:
 		return "TOKEN_VOID_KEYWORD";

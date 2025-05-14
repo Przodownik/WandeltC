@@ -157,6 +157,7 @@ typedef enum _StatementKind
 	STATEMENT_DECLARATION,
 	STATEMENT_EXPRESSION,
 	STATEMENT_RETURN,
+	STATEMENT_IF,
 } StatementKind;
 
 typedef struct _CompountStatement
@@ -179,6 +180,13 @@ typedef struct _ReturnStatement
 	Expression* expression; // can be null for return;
 } ReturnStatement;
 
+typedef struct _IfStatement
+{
+	Expression* condition;
+	Statement* then_branch;
+	Statement* else_branch; // can be null
+} IfStatement;
+
 typedef struct _Statement
 {
 	StatementKind kind;
@@ -190,6 +198,7 @@ typedef struct _Statement
 		DeclarationStatement declaration;
 		ExpressionStatement expression;
 		ReturnStatement return_;
+		IfStatement if_;
 	};
 } Statement;
 

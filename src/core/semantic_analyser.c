@@ -471,10 +471,35 @@ bool sema_analyse_statement(SemaContext* sema_context, Statement* statement)
 
 	case STATEMENT_EXPRESSION:
 		return sema_analyse_expression(sema_context, statement->expression.expression);
+
+	case STATEMENT_IF:
+		if (!sema_analyse_expression(sema_context, statement->if_.condition))
+			return false;
+
+		if (statement->if_.condition->type->kind != TYPE_KIND_BOOL)
+		{
+			sema_report_error(
+			    &statement->if_.condition->source_span,
+			    "Condition of 'if' statement must be of type '" YHOT("bool") "', but it is of type '" YHOT("%s") "'.",
+			    type_kind_to_string(statement->if_.condition->type->kind));
+
+			return false;
+		}
+
+		if (!sema_analyse_statement(sema_context, statement->if_.then_branch))
+			return false;
+
+		if (statement->if_.else_branch != nullptr)
+			if (!sema_analyse_statement(sema_context, statement->if_.else_branch))
+				return false;
+
+		return true;
+
 	default:
-		ASSERT(false, "Invalid statement kind: %d\n", statement->kind);
 		break;
 	}
+
+	UNREACHABLE;
 
 	return false;
 }

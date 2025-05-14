@@ -30,6 +30,8 @@ void compiler_internal_initialize(void)
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_FALSE_KEYWORD), TOKEN_FALSE_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_PUBLIC_KEYWORD), TOKEN_PUBLIC_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_PRIVATE_KEYWORD), TOKEN_PRIVATE_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_IF_KEYWORD), TOKEN_IF_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_ELSE_KEYWORD), TOKEN_ELSE_KEYWORD);
 
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_VOID_KEYWORD), TOKEN_VOID_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_BOOL_KEYWORD), TOKEN_BOOL_KEYWORD);
@@ -262,6 +264,23 @@ void emit_statement_json(Statement* stmt, cJSON* array)
 	case STATEMENT_EXPRESSION:
 		emit_expression_json(stmt->expression.expression, obj);
 		break;
+
+	case STATEMENT_IF: {
+		cJSON_AddStringToObject(obj, "type", "if");
+		cJSON* condition = cJSON_CreateObject();
+		emit_expression_json(stmt->if_.condition, condition);
+		cJSON_AddItemToObject(obj, "condition", condition);
+		cJSON* then_branch = cJSON_CreateObject();
+		emit_statement_json(stmt->if_.then_branch, then_branch);
+		cJSON_AddItemToObject(obj, "then_branch", then_branch);
+		if (stmt->if_.else_branch)
+		{
+			cJSON* else_branch = cJSON_CreateObject();
+			emit_statement_json(stmt->if_.else_branch, else_branch);
+			cJSON_AddItemToObject(obj, "else_branch", else_branch);
+		}
+		break;
+	}
 
 	default:
 		cJSON_AddStringToObject(obj, "type", "unknown");

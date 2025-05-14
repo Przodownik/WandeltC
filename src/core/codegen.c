@@ -22,6 +22,8 @@ typedef struct _CodegenContext
 	LLVMTypeRef long_type;
 	LLVMTypeRef float_type;
 	LLVMTypeRef double_type;
+
+	LLVMValueRef current_function;
 } CodegenContext;
 
 LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression);
@@ -183,43 +185,37 @@ LLVMValueRef codegen_emit_binary_expression(CodegenContext* context, Expression*
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
-		return codegen_emit_cast_bool_to_int(context,
-		                                     LLVMBuildICmp(context->llvm_builder, LLVMIntEQ, lhs, rhs, "equal"));
+		return LLVMBuildICmp(context->llvm_builder, LLVMIntEQ, lhs, rhs, "equal");
 	}
 	case BINARY_OPERATOR_NOT_EQUAL: {
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
-		return codegen_emit_cast_bool_to_int(context,
-		                                     LLVMBuildICmp(context->llvm_builder, LLVMIntNE, lhs, rhs, "not.equal"));
+		return LLVMBuildICmp(context->llvm_builder, LLVMIntNE, lhs, rhs, "not.equal");
 	}
 	case BINARY_OPERATOR_GREATER: {
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
-		return codegen_emit_cast_bool_to_int(context,
-		                                     LLVMBuildICmp(context->llvm_builder, LLVMIntSGT, lhs, rhs, "greater"));
+		return LLVMBuildICmp(context->llvm_builder, LLVMIntSGT, lhs, rhs, "greater");
 	}
 	case BINARY_OPERATOR_LESS: {
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
-		return codegen_emit_cast_bool_to_int(context,
-		                                     LLVMBuildICmp(context->llvm_builder, LLVMIntSLT, lhs, rhs, "less"));
+		return LLVMBuildICmp(context->llvm_builder, LLVMIntSLT, lhs, rhs, "less");
 	}
 	case BINARY_OPERATOR_GREATER_OR_EQUAL: {
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
-		return codegen_emit_cast_bool_to_int(
-		    context, LLVMBuildICmp(context->llvm_builder, LLVMIntSGE, lhs, rhs, "greater.or.equal"));
+		return LLVMBuildICmp(context->llvm_builder, LLVMIntSGE, lhs, rhs, "greater.or.equal");
 	}
 	case BINARY_OPERATOR_LESS_OR_EQUAL: {
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
-		return codegen_emit_cast_bool_to_int(
-		    context, LLVMBuildICmp(context->llvm_builder, LLVMIntSLE, lhs, rhs, "less.or.equal"));
+		return LLVMBuildICmp(context->llvm_builder, LLVMIntSLE, lhs, rhs, "less.or.equal");
 	}
 	case BINARY_OPERATOR_ASSIGN: {
 		LLVMValueRef variable = expression->binary.left->identifier.refered->handle;
@@ -329,6 +325,35 @@ void codegen_emit_compound_statement(CodegenContext* context, Statement* stateme
 	}
 }
 
+void codegen_emit_if_statement(CodegenContext* context, Statement* statement)
+{
+	LLVMValueRef condition = codegen_emit_expression(context, statement->if_.condition);
+
+	LLVMBasicBlockRef then_block =
+	    LLVMAppendBasicBlockInContext(context->llvm_context, context->current_function, "if.then");
+	LLVMBasicBlockRef else_block =
+	    LLVMAppendBasicBlockInContext(context->llvm_context, context->current_function, "if.else");
+	LLVMBasicBlockRef merge_block =
+	    LLVMAppendBasicBlockInContext(context->llvm_context, context->current_function, "if.merge");
+
+	LLVMBuildCondBr(context->llvm_builder, condition, then_block, else_block);
+
+	LLVMPositionBuilderAtEnd(context->llvm_builder, then_block);
+
+	codegen_emit_compound_statement(context, statement->if_.then_branch);
+
+	LLVMBuildBr(context->llvm_builder, merge_block);
+
+	LLVMPositionBuilderAtEnd(context->llvm_builder, else_block);
+
+	if (statement->if_.else_branch != nullptr)
+		codegen_emit_compound_statement(context, statement->if_.else_branch);
+
+	LLVMBuildBr(context->llvm_builder, merge_block);
+
+	LLVMPositionBuilderAtEnd(context->llvm_builder, merge_block);
+}
+
 void codegen_emit_statement(CodegenContext* context, Statement* statement)
 {
 	switch (statement->kind)
@@ -360,7 +385,13 @@ void codegen_emit_statement(CodegenContext* context, Statement* statement)
 	case STATEMENT_RETURN:
 		codegen_emit_return_statement(context, statement);
 		break;
+
+	case STATEMENT_IF:
+		codegen_emit_if_statement(context, statement);
+		break;
+
 	default:
+		UNREACHABLE;
 		break;
 	}
 }
@@ -381,6 +412,8 @@ void codegen_emit_function(CodegenContext* context, Declaration* declaration)
 
 	LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(context->llvm_context, declaration->handle, "entry");
 	LLVMPositionBuilderAtEnd(context->llvm_builder, entry);
+
+	context->current_function = function;
 
 	codegen_emit_compound_statement(context, declaration->function.body->compound.first);
 }
