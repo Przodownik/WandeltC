@@ -22,6 +22,7 @@ typedef enum _TokenType
 	TOKEN_PRIVATE_KEYWORD,      // private
 	TOKEN_IF_KEYWORD,           // if
 	TOKEN_ELSE_KEYWORD,         // else
+	TOKEN_WHILE_KEYWORD,        // while
 
 	// builtin types
 	TOKEN_VOID_KEYWORD,   // void

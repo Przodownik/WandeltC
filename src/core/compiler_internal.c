@@ -32,6 +32,7 @@ void compiler_internal_initialize(void)
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_PRIVATE_KEYWORD), TOKEN_PRIVATE_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_IF_KEYWORD), TOKEN_IF_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_ELSE_KEYWORD), TOKEN_ELSE_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_WHILE_KEYWORD), TOKEN_WHILE_KEYWORD);
 
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_VOID_KEYWORD), TOKEN_VOID_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_BOOL_KEYWORD), TOKEN_BOOL_KEYWORD);

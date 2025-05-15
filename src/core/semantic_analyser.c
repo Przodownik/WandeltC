@@ -480,7 +480,7 @@ bool sema_analyse_statement(SemaContext* sema_context, Statement* statement)
 		{
 			sema_report_error(
 			    &statement->if_.condition->source_span,
-			    "Condition of 'if' statement must be of type '" YHOT("bool") "', but it is of type '" YHOT("%s") "'.",
+			    "Condition of 'if' statement must be of type '" YHRT("bool") "', but it is of type '" YHRT("%s") "'.",
 			    type_kind_to_string(statement->if_.condition->type->kind));
 
 			return false;
@@ -492,6 +492,24 @@ bool sema_analyse_statement(SemaContext* sema_context, Statement* statement)
 		if (statement->if_.else_branch != nullptr)
 			if (!sema_analyse_statement(sema_context, statement->if_.else_branch))
 				return false;
+
+		return true;
+
+	case STATEMENT_WHILE:
+		if (!sema_analyse_expression(sema_context, statement->while_.condition))
+			return false;
+
+		if (statement->while_.condition->type->kind != TYPE_KIND_BOOL)
+		{
+			sema_report_error(&statement->while_.condition->source_span,
+			                  "Condition of 'while' statement must be of type '" YHRT(
+			                      "bool") "', but it is of type '" YHRT("%s") "'.",
+			                  type_kind_to_string(statement->while_.condition->type->kind));
+			return false;
+		}
+
+		if (!sema_analyse_statement(sema_context, statement->while_.body))
+			return false;
 
 		return true;
 

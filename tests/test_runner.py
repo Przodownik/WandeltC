@@ -79,7 +79,7 @@ def run_test(index, total, file_path):
             expected_clean = normalize_stderr(expected_fail)
 
             if expected_clean == stderr_clean:
-                print(f"{Fore.GREEN}[PASS]{Style.RESET_ALL} {file_path} (expected failure matched) "
+                print(f"{Fore.GREEN}[PASS]{Style.RESET_ALL} {file_path} "
                       f"{Style.DIM}({elapsed_ms:.1f} ms){Style.RESET_ALL}")
                 return "pass"
             else:

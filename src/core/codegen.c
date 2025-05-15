@@ -354,6 +354,31 @@ void codegen_emit_if_statement(CodegenContext* context, Statement* statement)
 	LLVMPositionBuilderAtEnd(context->llvm_builder, merge_block);
 }
 
+void codegen_emit_while_statement(CodegenContext* context, Statement* statement)
+{
+	LLVMBasicBlockRef cond_block =
+	    LLVMAppendBasicBlockInContext(context->llvm_context, context->current_function, "while.cond");
+
+	LLVMBasicBlockRef loop_block =
+	    LLVMAppendBasicBlockInContext(context->llvm_context, context->current_function, "while.loop");
+
+	LLVMBasicBlockRef merge_block =
+	    LLVMAppendBasicBlockInContext(context->llvm_context, context->current_function, "while.merge");
+
+	LLVMBuildBr(context->llvm_builder, cond_block);
+
+	LLVMPositionBuilderAtEnd(context->llvm_builder, cond_block);
+	LLVMValueRef condition = codegen_emit_expression(context, statement->while_.condition);
+	LLVMBuildCondBr(context->llvm_builder, condition, loop_block, merge_block);
+
+	LLVMPositionBuilderAtEnd(context->llvm_builder, loop_block);
+	codegen_emit_compound_statement(context, statement->while_.body);
+
+	LLVMBuildBr(context->llvm_builder, cond_block);
+
+	LLVMPositionBuilderAtEnd(context->llvm_builder, merge_block);
+}
+
 void codegen_emit_statement(CodegenContext* context, Statement* statement)
 {
 	switch (statement->kind)
@@ -388,6 +413,10 @@ void codegen_emit_statement(CodegenContext* context, Statement* statement)
 
 	case STATEMENT_IF:
 		codegen_emit_if_statement(context, statement);
+		break;
+
+	case STATEMENT_WHILE:
+		codegen_emit_while_statement(context, statement);
 		break;
 
 	default:

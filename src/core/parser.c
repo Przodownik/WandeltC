@@ -123,6 +123,16 @@ void parser_report_error(SourceSpan* location, const char* message, ...)
 	va_end(list);
 }
 
+void parser_report_warning(SourceSpan* location, const char* message, ...)
+{
+	global_context.warning_count++;
+
+	va_list list;
+	va_start(list, message);
+	diagnostics_vwarning_along_span(location, message, list);
+	va_end(list);
+}
+
 int8 parser_get_token_precedence(TokenType type)
 {
 	switch (type)
@@ -592,6 +602,22 @@ Statement* parse_expression_statement(Parser* parser)
 	if (statement->expression.expression->kind == EXPRESSION_INVALID)
 		return &invalid_statement;
 
+	// check if the expression is a valid assignment expression
+	if (statement->expression.expression->kind != EXPRESSION_BINARY ||
+	    statement->expression.expression->binary.left->kind != EXPRESSION_IDENTIFIER ||
+	    statement->expression.expression->binary.operator!= BINARY_OPERATOR_ASSIGN)
+	{
+		SourceSpan span = extend_span_with_token(type_token.source_span, parser->lexer->current_token.source_span);
+
+		parser_report_error(
+		    &span,
+		    "Expression statement with expression '" YHRT("%s") "' is invalid here! Did you mean to "
+		                                                        "assign a value to a variable or call a function?",
+		    parser->lexer->current_token.lexeme);
+
+		return &invalid_statement;
+	}
+
 	if (!parser_expect(parser, TOKEN_SEMICOLON))
 		return &invalid_statement;
 
@@ -646,6 +672,40 @@ Statement* parse_if_statement(Parser* parser)
 	return statement;
 }
 
+Statement* parse_while_statement(Parser* parser)
+{
+	Token while_token = parser_get_token_and_advance(parser); // consume while
+
+	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
+	statement->kind      = STATEMENT_WHILE;
+
+	if (!parser_expect(parser, TOKEN_OPEN_PAREN))
+		return &invalid_statement;
+
+	parser_advance(parser); // consume (
+
+	statement->while_.condition = parse_expression(parser);
+
+	if (statement->while_.condition->kind == EXPRESSION_INVALID)
+		return &invalid_statement;
+
+	if (!parser_expect(parser, TOKEN_CLOSE_PAREN))
+		return &invalid_statement;
+
+	parser_advance(parser); // consume )
+
+	statement->while_.body = parse_statement(parser);
+
+	if (statement->while_.body->kind == STATEMENT_INVALID)
+		return &invalid_statement;
+
+	Token close_paren_token = parser->lexer->previous_token;
+
+	statement->source_span = extend_span_with_token(while_token.source_span, close_paren_token.source_span);
+
+	return statement;
+}
+
 Statement* parse_statement(Parser* parser)
 {
 	switch (parser->lexer->current_token.type)
@@ -661,6 +721,9 @@ Statement* parse_statement(Parser* parser)
 
 	case TOKEN_IF_KEYWORD:
 		return parse_if_statement(parser);
+
+	case TOKEN_WHILE_KEYWORD:
+		return parse_while_statement(parser);
 
 	case TOKEN_OPEN_BRACE:
 		return parse_compound_statement(parser);

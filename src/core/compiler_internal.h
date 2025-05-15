@@ -158,6 +158,7 @@ typedef enum _StatementKind
 	STATEMENT_EXPRESSION,
 	STATEMENT_RETURN,
 	STATEMENT_IF,
+	STATEMENT_WHILE,
 } StatementKind;
 
 typedef struct _CompountStatement
@@ -187,6 +188,12 @@ typedef struct _IfStatement
 	Statement* else_branch; // can be null
 } IfStatement;
 
+typedef struct _WhileStatement
+{
+	Expression* condition;
+	Statement* body;
+} WhileStatement;
+
 typedef struct _Statement
 {
 	StatementKind kind;
@@ -199,6 +206,7 @@ typedef struct _Statement
 		ExpressionStatement expression;
 		ReturnStatement return_;
 		IfStatement if_;
+		WhileStatement while_;
 	};
 } Statement;
 

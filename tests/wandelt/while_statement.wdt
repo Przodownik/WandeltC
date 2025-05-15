@@ -1,0 +1,41 @@
+fn int main()
+{
+    int x = 10;
+
+    while (x > 0)
+    {
+        x = x - 1;
+    }
+
+    return x;
+}
+
+/*
+#expect
+; ModuleID = 'module:core'
+source_filename = "main.wdt"
+target datalayout = ""
+target triple = ""
+
+define i32 @main() {
+entry:
+  %x = alloca i32, align 4
+  store i32 10, ptr %x, align 4
+  br label %while.cond
+
+while.cond:                                       ; preds = %while.loop, %entry
+  %x1 = load i32, ptr %x, align 4
+  %greater = icmp sgt i32 %x1, 0
+  br i1 %greater, label %while.loop, label %while.merge
+
+while.loop:                                       ; preds = %while.cond
+  %x2 = load i32, ptr %x, align 4
+  %sub = sub i32 %x2, 1
+  store i32 %sub, ptr %x, align 4
+  br label %while.cond
+
+while.merge:                                      ; preds = %while.cond
+  %x3 = load i32, ptr %x, align 4
+  ret i32 %x3
+}
+*/

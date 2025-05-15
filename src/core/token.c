@@ -20,6 +20,8 @@ const char* token_type_to_string(TokenType type)
 		return "if";
 	case TOKEN_ELSE_KEYWORD:
 		return "else";
+	case TOKEN_WHILE_KEYWORD:
+		return "while";
 
 	case TOKEN_VOID_KEYWORD:
 		return "void";
@@ -146,6 +148,8 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_IF_KEYWORD";
 	case TOKEN_ELSE_KEYWORD:
 		return "TOKEN_ELSE_KEYWORD";
+	case TOKEN_WHILE_KEYWORD:
+		return "TOKEN_WHILE_KEYWORD";
 
 	case TOKEN_VOID_KEYWORD:
 		return "TOKEN_VOID_KEYWORD";
@@ -254,5 +258,5 @@ const char* token_type_to_enum_stringified(TokenType type)
 
 bool is_token_type_a_type_token(TokenType type)
 {
-	return type > TOKEN_PRIVATE_KEYWORD && type < TOKEN_OPEN_PAREN;
+	return type > TOKEN_WHILE_KEYWORD && type < TOKEN_OPEN_PAREN;
 }
