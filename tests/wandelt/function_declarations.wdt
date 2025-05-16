@@ -1,3 +1,8 @@
+fn int add(int x, int y = 12)
+{
+	return x + y;
+}
+
 fn int testfunc1()
 {
     return 123;
@@ -21,6 +26,18 @@ fn int main()
 source_filename = "main.wdt"
 target datalayout = ""
 target triple = ""
+
+define i32 @add(i32 %0, i32 %1) {
+entry:
+  %x = alloca i32, align 4
+  store i32 %0, ptr %x, align 4
+  %y = alloca i32, align 4
+  store i32 %1, ptr %y, align 4
+  %x1 = load i32, ptr %x, align 4
+  %y2 = load i32, ptr %y, align 4
+  %add = add i32 %x1, %y2
+  ret i32 %add
+}
 
 define i32 @testfunc1() {
 entry:

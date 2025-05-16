@@ -13,6 +13,8 @@
 // Yellow highlight orange text
 #define YHOT(text) ANSI_COLOR_YELLOW text ANSI_COLOR_ORANGE
 
+#define MAX_FN_PARAMETERS 16
+
 typedef struct _Declaration Declaration;
 typedef struct _Statement Statement;
 typedef struct _Type Type;
@@ -115,11 +117,32 @@ typedef enum _DeclKind
 	DECLARATION_VARIABLE
 } DeclKind;
 
+typedef enum _AttributeKind
+{
+	ATTRIBUTE_INVALID = 0,
+	ATTRIBUTE_FOREIGN,
+} AttributeKind;
+
+typedef struct _ForeignAttribute
+{
+	const char* foreign_name;
+} ForeignAttribute;
+
+typedef struct _Attribute
+{
+	AttributeKind kind;
+
+	union {
+		ForeignAttribute foreign;
+	};
+} Attribute;
+
 typedef struct _FunctionSignature
 {
 	Type* return_type;
 	const char* name;
-	Declaration** parameters;
+	Declaration** parameters; // nullable
+	Attribute* attributes;    // nullable
 	SourceSpan source_span;
 } FunctionSignature;
 

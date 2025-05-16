@@ -200,18 +200,82 @@ bool parse_type(Parser* parser, Type** type)
 	return true;
 }
 
+Declaration* parse_function_parameter_declaration(Parser* parser)
+{
+	Token type_token = parser->lexer->current_token;
+
+	Declaration* declaration    = arena_allocator_allocate(&declaration_allocator, sizeof(Declaration));
+	declaration->kind           = DECLARATION_VARIABLE;
+	declaration->resolve_status = RESOLVE_STATUS_UNRESOLVED;
+
+	if (!parse_type(parser, &declaration->variable.type))
+		return &invalid_declaration;
+
+	if (!parser_expect(parser, TOKEN_IDENTIFIER))
+		return &invalid_declaration;
+
+	declaration->variable.name = parser->lexer->current_token.lexeme;
+
+	parser_advance(parser); // consume the identifier
+
+	if (parser_get_token_type(parser) == TOKEN_EQUAL)
+	{
+		parser_advance(parser); // consume the equal sign
+
+		declaration->variable.initializer = parse_expression(parser);
+
+		if (declaration->variable.initializer->kind == EXPRESSION_INVALID)
+			return &invalid_declaration;
+	}
+
+	declaration->source_span =
+	    extend_span_with_token(type_token.source_span, parser->lexer->previous_token.source_span);
+
+	return declaration;
+}
+
 // for now empty (), TODO: (<type> <identifier>, ...)
-bool parse_parameters(Parser* parser, Declaration** parameters)
+bool parse_parameters(Parser* parser, Declaration*** parameters)
 {
 	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_OPEN_PAREN));
 
 	parser_advance(parser); // consume (
 
+	// empty parameters, just return
+	if (parser->lexer->current_token.type == TOKEN_CLOSE_PAREN)
+	{
+		parser_advance(parser); // consume )
+		return true;
+	}
+
+	*parameters = vector_create(3, sizeof(Declaration*));
+
+	while (parser->lexer->current_token.type != TOKEN_CLOSE_PAREN)
+	{
+		Declaration* param_decl = parse_function_parameter_declaration(parser);
+
+		if (param_decl->kind == DECLARATION_INVALID)
+			return false;
+
+		vector_push(*parameters, param_decl);
+
+		if (parser->lexer->current_token.type != TOKEN_CLOSE_PAREN && parser->lexer->current_token.type != TOKEN_COMMA)
+		{
+			parser_report_error(&parser->lexer->current_token.source_span,
+			                    "Expected a comma or a closing parenthesis, but received '" YHRT("%s") "'",
+			                    parser->lexer->current_token.lexeme);
+			return false;
+		}
+
+		if (parser->lexer->current_token.type == TOKEN_COMMA)
+		{
+			parser_advance(parser); // consume ,
+		}
+	}
+
 	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_CLOSE_PAREN));
 
 	parser_advance(parser); // consume )
-
-	(void)parameters; // todo
 
 	return true;
 }
@@ -223,7 +287,7 @@ bool parse_function_signature(Parser* parser, FunctionSignature* signature)
 
 	OK_OR_RET_FALSE(parse_type(parser, &signature->return_type));
 	OK_OR_RET_FALSE(parse_identifier(parser, &signature->name));
-	OK_OR_RET_FALSE(parse_parameters(parser, signature->parameters));
+	OK_OR_RET_FALSE(parse_parameters(parser, &signature->parameters));
 
 	Token close_paren_token = parser->lexer->previous_token;
 
@@ -786,13 +850,28 @@ Declaration* parse_top_level_statement(Parser* parser)
 		if (!parse_function_signature(parser, &new_declaration->function.signature))
 			return &invalid_declaration;
 
-		Statement* body = parse_compound_statement(parser);
-		if (body->kind == STATEMENT_INVALID)
-			return &invalid_declaration;
+		// function has the body
+		if (parser_get_token_type(parser) == TOKEN_OPEN_BRACE)
+		{
+			Statement* body = parse_compound_statement(parser);
+			if (body->kind == STATEMENT_INVALID)
+				return &invalid_declaration;
 
-		new_declaration->function.body = body;
-		new_declaration->source_span =
-		    extend_span_with_token(new_declaration->function.signature.source_span, body->source_span);
+			new_declaration->function.body = body;
+			new_declaration->source_span =
+			    extend_span_with_token(new_declaration->function.signature.source_span, body->source_span);
+		}
+		else
+		{
+			if (!parser_expect(parser, TOKEN_SEMICOLON))
+				return &invalid_declaration;
+
+			Token semicolon_token = parser_get_token_and_advance(parser); // consume ;
+
+			new_declaration->function.body = nullptr;
+			new_declaration->source_span =
+			    extend_span_with_token(new_declaration->function.signature.source_span, semicolon_token.source_span);
+		}
 
 		vector_push(parser->context->functions_declarations, new_declaration);
 

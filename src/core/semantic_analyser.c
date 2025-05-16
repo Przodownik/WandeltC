@@ -33,6 +33,7 @@ typedef struct _Scope
 typedef struct _SemaContext
 {
 	Scope* current_scope;
+	Declaration* current_function;
 	int32 current_scope_depth;
 	Scope scopes[MAX_SCOPE_DEPTH];
 	Declaration** analysed_functions;
@@ -89,6 +90,28 @@ bool sema_analyse_compound_statement(SemaContext* sema_context, Statement* state
 
 Declaration* sema_resolve_identifier_expression(SemaContext* sema_context, Expression* expression)
 {
+	// first check for parameter declarations
+	if (sema_context->current_function->function.signature.parameters != nullptr)
+	{
+		for (uint64 i = 0; i < vector_get_length(sema_context->current_function->function.signature.parameters); ++i)
+		{
+			Declaration* parameter = sema_context->current_function->function.signature.parameters[i];
+			if (strcmp(parameter->variable.name, expression->identifier.name) == 0)
+			{
+				if (parameter->resolve_status == RESOLVE_STATUS_RESOLVING)
+				{
+					sema_report_error(
+					    &expression->source_span,
+					    "Parameter '%s' is being resolved recursively. Please check for circular dependencies.",
+					    expression->identifier.name);
+					return nullptr;
+				}
+
+				return parameter;
+			}
+		}
+	}
+
 	for (int32 i = 0; i < sema_context->current_scope_depth; ++i)
 	{
 		Scope* current_scope = &sema_context->scopes[i];
@@ -534,15 +557,67 @@ bool sema_analyse_function_declaration(SemaContext* sema_context, Declaration* d
 		return false;
 	}
 
-	sema_push_scope(sema_context, declaration->function.body);
+	bool result = false;
 
-	bool result = sema_analyse_compound_statement(sema_context, declaration->function.body);
+	sema_context->current_function = declaration;
 
-	sema_pop_scope(sema_context);
+	if (declaration->function.signature.parameters != nullptr)
+	{
+		if (vector_get_length(declaration->function.signature.parameters) > MAX_FN_PARAMETERS)
+		{
+			sema_report_error(&declaration->function.signature.source_span,
+			                  "Function '%s' has too many parameters (%d). Maximum is %d.",
+			                  declaration->function.signature.name,
+			                  vector_get_length(declaration->function.signature.parameters), MAX_FN_PARAMETERS);
+			return false;
+		}
 
-	// TODO: verify that function return type matches those with the return statements, or not require return if void
+		for (uint64 i = 0; i < vector_get_length(declaration->function.signature.parameters); ++i)
+		{
+			Declaration* parameter    = declaration->function.signature.parameters[i];
+			parameter->resolve_status = RESOLVE_STATUS_RESOLVING;
 
-	Statement* function_body    = declaration->function.body;
+			if (parameter->variable.initializer != nullptr)
+			{
+				if (!sema_analyse_expression(sema_context, parameter->variable.initializer))
+					return false;
+
+				Type* parameter_type   = parameter->variable.type;
+				Type* initializer_type = parameter->variable.initializer->type;
+
+				if (parameter_type != initializer_type)
+				{
+					sema_report_error(&parameter->source_span,
+					                  "Parameter '%s' of type '%s' cannot be initialized with expression of type '%s'.",
+					                  parameter->variable.name, type_kind_to_string(parameter_type->kind),
+					                  type_kind_to_string(initializer_type->kind));
+
+					return false;
+				}
+			}
+
+			parameter->resolve_status = RESOLVE_STATUS_RESOLVED;
+		}
+	}
+
+	if (declaration->function.body)
+	{
+		sema_push_scope(sema_context, declaration->function.body);
+
+		result = sema_analyse_compound_statement(sema_context, declaration->function.body);
+
+		sema_pop_scope(sema_context);
+
+		// TODO: verify that function return type matches those with the return statements, or not require return if
+		// void
+
+		Statement* function_body = declaration->function.body;
+	}
+	else
+	{
+		// only the signature is defined for the function with foreign attribute!! TODO
+	}
+
 	declaration->resolve_status = RESOLVE_STATUS_RESOLVED;
 
 	vector_push(sema_context->analysed_functions, declaration);

@@ -425,26 +425,71 @@ void codegen_emit_statement(CodegenContext* context, Statement* statement)
 	}
 }
 
+static LLVMTypeRef s_params[MAX_FN_PARAMETERS];
+
+LLVMTypeRef codegen_emit_function_type(CodegenContext* context, FunctionSignature* function_signature)
+{
+	LLVMTypeRef return_type = codegen_emit_type(context, function_signature->return_type);
+
+	if (function_signature->parameters)
+	{
+		uint64 param_count = vector_get_length(function_signature->parameters);
+
+		for (uint64 i = 0; i < param_count; ++i)
+		{
+			Declaration* parameter = function_signature->parameters[i];
+			LLVMTypeRef param      = codegen_emit_type(context, parameter->variable.type);
+			parameter->handle      = param;
+
+			s_params[i] = param;
+		}
+
+		return LLVMFunctionType(return_type, s_params, (uint32)param_count, false);
+	}
+
+	return LLVMFunctionType(return_type, nullptr, 0, false);
+}
+
 void codegen_emit_function(CodegenContext* context, Declaration* declaration)
 {
 	FunctionSignature fn_signature = declaration->function.signature;
 
-	LLVMTypeRef type      = codegen_emit_type(context, declaration->function.signature.return_type);
-	LLVMTypeRef func_type = LLVMFunctionType(type, nullptr, 0, false);
-
-	LLVMValueRef function = LLVMAddFunction(context->llvm_module, fn_signature.name, func_type);
-	declaration->handle   = function;
+	LLVMValueRef function =
+	    LLVMAddFunction(context->llvm_module, fn_signature.name, codegen_emit_function_type(context, &fn_signature));
+	declaration->handle = function;
 
 	LLVMSetFunctionCallConv(function, LLVMCCallConv);
 	// LLVMSetLinkage(function, LLVMInternalLinkage);
 	LLVMSetVisibility(function, LLVMDefaultVisibility);
 
-	LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(context->llvm_context, declaration->handle, "entry");
-	LLVMPositionBuilderAtEnd(context->llvm_builder, entry);
+	if (declaration->function.body)
+	{
+		LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(context->llvm_context, declaration->handle, "entry");
+		LLVMPositionBuilderAtEnd(context->llvm_builder, entry);
 
-	context->current_function = function;
+		context->current_function = function;
 
-	codegen_emit_compound_statement(context, declaration->function.body->compound.first);
+		if (fn_signature.parameters != nullptr)
+		{
+			for (uint64 i = 0; i < vector_get_length(fn_signature.parameters); ++i)
+			{
+				Declaration* param_decl = fn_signature.parameters[i];
+				LLVMTypeRef param_type  = codegen_emit_type(context, param_decl->variable.type);
+
+				LLVMValueRef alloca = LLVMBuildAlloca(context->llvm_builder, param_type, param_decl->variable.name);
+
+				LLVMValueRef param_value = LLVMGetParam(function, (uint32)i);
+				LLVMBuildStore(context->llvm_builder, param_value, alloca);
+
+				param_decl->handle = alloca;
+			}
+		}
+
+		codegen_emit_compound_statement(context, declaration->function.body->compound.first);
+	}
+
+	if (fn_signature.parameters != nullptr)
+		vector_destroy(declaration->function.signature.parameters); // free params vector
 }
 
 typedef struct _PlatformTarget
