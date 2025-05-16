@@ -8,3 +8,5 @@ build
 *.ll
 *.asm
 *.json
+
+!Wandelt.tmLanguage.json
