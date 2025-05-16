@@ -137,6 +137,8 @@ typedef struct _Attribute
 	};
 } Attribute;
 
+bool has_attribute(Attribute* attributes, AttributeKind kind);
+
 typedef struct _FunctionSignature
 {
 	Type* return_type;
@@ -284,6 +286,7 @@ typedef enum _ExpressionKind
 	EXPRESSION_GROUP,
 	EXPRESSION_IDENTIFIER,
 	EXPRESSION_CAST,
+	EXPRESSION_CALL,
 } ExpressionKind;
 
 typedef enum _ConstantType
@@ -483,6 +486,12 @@ typedef struct _CastExpression
 	CastKind cast_kind;
 } CastExpression;
 
+typedef struct _CallExpression
+{
+	Expression* callee;
+	Expression** arguments; // nullable
+} CallExpression;
+
 typedef struct _Expression
 {
 	ExpressionKind kind;
@@ -497,6 +506,7 @@ typedef struct _Expression
 		GroupedExpression group;
 		IdentifierExpression identifier;
 		CastExpression cast;
+		CallExpression call;
 	};
 } Expression;
 

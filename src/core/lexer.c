@@ -450,6 +450,8 @@ bool _lexer_try_get_next_token(Lexer* lexer)
 		return lexer_make_new_token(lexer, TOKEN_COLON, ":");
 	case ';':
 		return lexer_make_new_token(lexer, TOKEN_SEMICOLON, ";");
+	case '@':
+		return lexer_make_new_token(lexer, TOKEN_AT, "@");
 	case '\'':
 		return lexer_scan_character(lexer);
 	case '"':

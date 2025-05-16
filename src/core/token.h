@@ -10,6 +10,7 @@
 // 2) Add it to the switch inside token_type_to_enum_stringified method.
 // 3) If the token is a keyword add it to the symbol table inside compiler_internal_initialize method in
 //	  compiler_internal.h
+// 3a) And modify in bool is_token_type_a_type_token(TokenType type)
 // 4) If it is also a type consider proper casts support.
 typedef enum _TokenType
 {
@@ -23,6 +24,7 @@ typedef enum _TokenType
 	TOKEN_IF_KEYWORD,           // if
 	TOKEN_ELSE_KEYWORD,         // else
 	TOKEN_WHILE_KEYWORD,        // while
+	TOKEN_FOREIGN_KEYWORD,      // foreign
 
 	// builtin types
 	TOKEN_VOID_KEYWORD,   // void
@@ -62,6 +64,7 @@ typedef enum _TokenType
 	TOKEN_SEMICOLON,     // ;
 	TOKEN_APOSTROPHE,    // '
 	TOKEN_QUOTE,         // "
+	TOKEN_AT,            // @
 
 	// double character tokens
 	TOKEN_STAR_STAR,        // **

@@ -211,25 +211,29 @@ Declaration* parse_function_parameter_declaration(Parser* parser)
 	if (!parse_type(parser, &declaration->variable.type))
 		return &invalid_declaration;
 
-	if (!parser_expect(parser, TOKEN_IDENTIFIER))
-		return &invalid_declaration;
-
-	declaration->variable.name = parser->lexer->current_token.lexeme;
-
-	parser_advance(parser); // consume the identifier
-
-	if (parser_get_token_type(parser) == TOKEN_EQUAL)
+	if (parser_get_token_type(parser) == TOKEN_IDENTIFIER)
 	{
-		parser_advance(parser); // consume the equal sign
+		declaration->variable.name = parser->lexer->current_token.lexeme;
 
-		declaration->variable.initializer = parse_expression(parser);
+		parser_advance(parser); // consume the identifier
 
-		if (declaration->variable.initializer->kind == EXPRESSION_INVALID)
-			return &invalid_declaration;
+		if (parser_get_token_type(parser) == TOKEN_EQUAL)
+		{
+			parser_advance(parser); // consume the equal sign
+
+			declaration->variable.initializer = parse_expression(parser);
+
+			if (declaration->variable.initializer->kind == EXPRESSION_INVALID)
+				return &invalid_declaration;
+		}
+
+		declaration->source_span =
+		    extend_span_with_token(type_token.source_span, parser->lexer->previous_token.source_span);
 	}
-
-	declaration->source_span =
-	    extend_span_with_token(type_token.source_span, parser->lexer->previous_token.source_span);
+	else
+	{
+		declaration->source_span = type_token.source_span;
+	}
 
 	return declaration;
 }
@@ -289,9 +293,35 @@ bool parse_function_signature(Parser* parser, FunctionSignature* signature)
 	OK_OR_RET_FALSE(parse_identifier(parser, &signature->name));
 	OK_OR_RET_FALSE(parse_parameters(parser, &signature->parameters));
 
-	Token close_paren_token = parser->lexer->previous_token;
+	if (parser_get_token_type(parser) == TOKEN_AT)
+	{
+		signature->attributes = vector_create(2, sizeof(Attribute));
+	}
 
-	signature->source_span = extend_span_with_token(function_token.source_span, close_paren_token.source_span);
+	while (parser_get_token_type(parser) == TOKEN_AT)
+	{
+		parser_advance(parser);
+
+		switch (parser_get_token_type(parser))
+		{
+		case TOKEN_FOREIGN_KEYWORD:
+			parser_advance(parser); // consume foreign
+
+			Attribute foreign_attribute = {.kind = ATTRIBUTE_FOREIGN};
+			vector_push(signature->attributes, foreign_attribute);
+
+			break;
+		default:
+			parser_report_error(&parser->lexer->current_token.source_span,
+			                    "Expected a valid function attribute, but received '" YHRT("%s") "'",
+			                    parser->lexer->current_token.lexeme);
+
+			return false;
+		}
+	}
+
+	signature->source_span =
+	    extend_span_with_token(function_token.source_span, parser->lexer->previous_token.source_span);
 
 	return true;
 }
@@ -462,6 +492,78 @@ Expression* parse_cast_expression(Parser* parser)
 	return expression;
 }
 
+bool parse_arguments(Parser* parser, Expression*** arguments)
+{
+	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_OPEN_PAREN));
+
+	parser_advance(parser); // consume (
+
+	// empty arguments, just return
+	if (parser_get_token_type(parser) == TOKEN_CLOSE_PAREN)
+	{
+		parser_advance(parser); // consume )
+		return true;
+	}
+
+	*arguments = vector_create(3, sizeof(Expression*));
+
+	while (parser_get_token_type(parser) != TOKEN_CLOSE_PAREN)
+	{
+		Expression* argument_expression = parse_expression(parser);
+		if (argument_expression->kind == EXPRESSION_INVALID)
+			return false;
+
+		if (parser_get_token_type(parser) != TOKEN_CLOSE_PAREN && parser_get_token_type(parser) != TOKEN_COMMA)
+		{
+			parser_report_error(&parser->lexer->current_token.source_span,
+			                    "Expected a comma or a closing parenthesis, but received '" YHRT("%s") "'",
+			                    parser->lexer->current_token.lexeme);
+			return false;
+		}
+
+		if (parser_get_token_type(parser) == TOKEN_COMMA)
+		{
+			parser_advance(parser); // consume ,
+		}
+
+		vector_push(*arguments, argument_expression);
+	}
+
+	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_CLOSE_PAREN));
+
+	parser_advance(parser); // consume )
+
+	return true;
+}
+
+Expression* parse_identifier_expression(Parser* parser)
+{
+	Token identifier_token = parser_get_token_and_advance(parser); // consume identifier
+
+	Expression* ident_expression      = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	ident_expression->kind            = EXPRESSION_IDENTIFIER;
+	ident_expression->identifier.name = identifier_token.lexeme;
+	ident_expression->source_span     = identifier_token.source_span;
+
+	// identifier call expression
+	if (parser_get_token_type(parser) == TOKEN_OPEN_PAREN)
+	{
+		Expression* expression  = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+		expression->kind        = EXPRESSION_CALL;
+		expression->call.callee = ident_expression;
+
+		if (!parse_arguments(parser, &expression->call.arguments))
+			return &invalid_expression;
+
+		expression->source_span =
+		    extend_span_with_token(ident_expression->source_span, parser->lexer->previous_token.source_span);
+
+		return expression;
+	}
+
+	return ident_expression;
+}
+
 Expression* parse_primary_expression(Parser* parser)
 {
 	switch (parser->lexer->current_token.type)
@@ -477,14 +579,7 @@ Expression* parse_primary_expression(Parser* parser)
 	case TOKEN_OPEN_PAREN:
 		return parse_grouped_expression(parser);
 	case TOKEN_IDENTIFIER:
-		Expression* expression      = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
-		expression->kind            = EXPRESSION_IDENTIFIER;
-		expression->identifier.name = parser->lexer->current_token.lexeme;
-		expression->source_span     = parser->lexer->current_token.source_span;
-
-		parser_advance(parser); // consume the identifier
-
-		return expression;
+		return parse_identifier_expression(parser);
 	TOKEN_TYPE_KINDS:
 		return parse_cast_expression(parser);
 		break;
@@ -666,10 +761,17 @@ Statement* parse_expression_statement(Parser* parser)
 	if (statement->expression.expression->kind == EXPRESSION_INVALID)
 		return &invalid_statement;
 
-	// check if the expression is a valid assignment expression
-	if (statement->expression.expression->kind != EXPRESSION_BINARY ||
-	    statement->expression.expression->binary.left->kind != EXPRESSION_IDENTIFIER ||
-	    statement->expression.expression->binary.operator!= BINARY_OPERATOR_ASSIGN)
+	bool is_valid_identifier_assignment =
+	    statement->expression.expression->kind == EXPRESSION_BINARY &&
+	    statement->expression.expression->binary.left->kind == EXPRESSION_IDENTIFIER &&
+	    statement->expression.expression->binary.operator== BINARY_OPERATOR_ASSIGN;
+
+	bool is_valid_function_call = statement->expression.expression->kind == EXPRESSION_CALL &&
+	                              statement->expression.expression->call.callee->kind == EXPRESSION_IDENTIFIER;
+
+	bool is_valid = is_valid_identifier_assignment || is_valid_function_call;
+
+	if (!is_valid)
 	{
 		SourceSpan span = extend_span_with_token(type_token.source_span, parser->lexer->current_token.source_span);
 

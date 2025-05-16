@@ -266,6 +266,29 @@ LLVMValueRef codegen_emit_cast_expression(CodegenContext* context, Expression* e
 	NOT_IMPLEMENTED;
 }
 
+static LLVMValueRef s_args[MAX_FN_PARAMETERS];
+
+LLVMTypeRef codegen_emit_function_type(CodegenContext* context, FunctionSignature* function_signature);
+
+LLVMValueRef codegen_emit_call_expression(CodegenContext* context, Expression* expression)
+{
+	Declaration* function_declaration = expression->call.callee->identifier.refered;
+
+	LLVMValueRef callee = expression->call.callee->identifier.refered->handle;
+
+	uint64 param_count = vector_get_length(function_declaration->function.signature.parameters);
+
+	for (uint64 i = 0; i < param_count; ++i)
+	{
+		s_args[i] = codegen_emit_expression(context, expression->call.arguments[i]);
+	}
+
+	LLVMTypeRef function_type = codegen_emit_function_type(context, &function_declaration->function.signature);
+
+	return LLVMBuildCall2(context->llvm_builder, function_type, callee, s_args, (uint32)param_count,
+	                      function_declaration->function.signature.name);
+}
+
 LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression)
 {
 	switch (expression->kind)
@@ -284,6 +307,8 @@ LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expres
 	}
 	case EXPRESSION_CAST:
 		return codegen_emit_cast_expression(context, expression);
+	case EXPRESSION_CALL:
+		return codegen_emit_call_expression(context, expression);
 	default:
 		break;
 	}
@@ -459,8 +484,14 @@ void codegen_emit_function(CodegenContext* context, Declaration* declaration)
 	declaration->handle = function;
 
 	LLVMSetFunctionCallConv(function, LLVMCCallConv);
-	// LLVMSetLinkage(function, LLVMInternalLinkage);
 	LLVMSetVisibility(function, LLVMDefaultVisibility);
+
+	bool is_foreign = has_attribute(fn_signature.attributes, ATTRIBUTE_FOREIGN);
+
+	if (is_foreign)
+	{
+		LLVMSetLinkage(function, LLVMExternalLinkage);
+	}
 
 	if (declaration->function.body)
 	{
@@ -488,8 +519,10 @@ void codegen_emit_function(CodegenContext* context, Declaration* declaration)
 		codegen_emit_compound_statement(context, declaration->function.body->compound.first);
 	}
 
-	if (fn_signature.parameters != nullptr)
-		vector_destroy(declaration->function.signature.parameters); // free params vector
+	declaration->handle = function;
+
+	// if (fn_signature.parameters != nullptr)
+	// vector_destroy(declaration->function.signature.parameters); // free params vector
 }
 
 typedef struct _PlatformTarget

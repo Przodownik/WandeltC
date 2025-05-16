@@ -194,6 +194,9 @@ Type* sema_deduce_type_for_expression(SemaContext* sema_context, Expression* exp
 	case EXPRESSION_IDENTIFIER:
 		expression->type = expression->identifier.refered->variable.type;
 		break;
+	case EXPRESSION_CALL:
+		expression->type = sema_deduce_type_for_expression(sema_context, expression->call.callee);
+		break;
 	case EXPRESSION_CAST:
 		// Already set by the parser
 		break;
@@ -371,6 +374,67 @@ CastKind sema_resolve_cast_kind(Type* cast_to, Type* expression_type)
 	return cast_kind_table[expression_type->kind][cast_to->kind];
 }
 
+bool sema_analyse_call_expression(SemaContext* sema_context, Expression* expression)
+{
+	Declaration* function_declaration =
+	    sema_try_get_defined_function(sema_context, expression->call.callee->identifier.name);
+
+	if (function_declaration == nullptr)
+	{
+		sema_report_error(&expression->source_span,
+		                  "Could not resolve function '%s'. Please check if it is declared in the current scope.",
+		                  expression->call.callee->identifier.name);
+		return false;
+	}
+
+	expression->call.callee->resolve_status     = RESOLVE_STATUS_RESOLVED;
+	expression->call.callee->identifier.refered = function_declaration;
+
+	if (function_declaration->function.signature.parameters == nullptr && expression->call.arguments != nullptr)
+	{
+		sema_report_error(&expression->source_span,
+		                  "Function '%s' does not accept any arguments, but %d were provided.",
+		                  function_declaration->function.signature.name, vector_get_length(expression->call.arguments));
+
+		return false;
+	}
+
+	if (function_declaration->function.signature.parameters != nullptr &&
+	    vector_get_length(function_declaration->function.signature.parameters) !=
+	        vector_get_length(expression->call.arguments))
+	{
+		sema_report_error(&expression->source_span, "Function '%s' expects %d arguments, but %d were provided.",
+		                  function_declaration->function.signature.name,
+		                  vector_get_length(function_declaration->function.signature.parameters),
+		                  vector_get_length(expression->call.arguments));
+
+		return false;
+	}
+
+	for (uint64 i = 0; i < vector_get_length(expression->call.arguments); ++i)
+	{
+		Expression* argument = expression->call.arguments[i];
+
+		if (!sema_analyse_expression(sema_context, argument))
+			return false;
+
+		Type* parameter_type = function_declaration->function.signature.parameters[i]->variable.type;
+		Type* argument_type  = argument->type;
+
+		if (parameter_type != argument_type)
+		{
+			sema_report_error(&argument->source_span,
+			                  "Argument %d of function '%s' of type '%s' cannot be passed as an argument of type '%s'.",
+			                  i + 1, function_declaration->function.signature.name,
+			                  type_kind_to_string(parameter_type->kind), type_kind_to_string(argument_type->kind));
+
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool sema_analyse_expression_internal(SemaContext* sema_context, Expression* expression)
 {
 	switch (expression->kind)
@@ -410,6 +474,11 @@ bool sema_analyse_expression_internal(SemaContext* sema_context, Expression* exp
 			                  type_kind_to_string(expression->cast.cast_to->kind));
 			return false;
 		}
+
+		break;
+	case EXPRESSION_CALL:
+		if (!sema_analyse_call_expression(sema_context, expression))
+			return false;
 
 		break;
 	default:
@@ -561,6 +630,8 @@ bool sema_analyse_function_declaration(SemaContext* sema_context, Declaration* d
 
 	sema_context->current_function = declaration;
 
+	bool is_foreign = has_attribute(declaration->function.signature.attributes, ATTRIBUTE_FOREIGN);
+
 	if (declaration->function.signature.parameters != nullptr)
 	{
 		if (vector_get_length(declaration->function.signature.parameters) > MAX_FN_PARAMETERS)
@@ -576,6 +647,17 @@ bool sema_analyse_function_declaration(SemaContext* sema_context, Declaration* d
 		{
 			Declaration* parameter    = declaration->function.signature.parameters[i];
 			parameter->resolve_status = RESOLVE_STATUS_RESOLVING;
+
+			if (!is_foreign)
+			{
+				if (parameter->variable.name == nullptr)
+				{
+					sema_report_error(&parameter->source_span,
+					                  "Parameter of function '%s' does not have a name. Please provide a name.",
+					                  declaration->function.signature.name);
+					return false;
+				}
+			}
 
 			if (parameter->variable.initializer != nullptr)
 			{
@@ -600,8 +682,29 @@ bool sema_analyse_function_declaration(SemaContext* sema_context, Declaration* d
 		}
 	}
 
-	if (declaration->function.body)
+	if (is_foreign)
 	{
+		if (declaration->function.body)
+		{
+			sema_report_error(
+			    &declaration->function.body->source_span,
+			    "Function '%s' is declared as foreign, but it has a body! Foreign functions cannot have a body.",
+			    declaration->function.signature.name);
+
+			return false;
+		}
+	}
+	else
+	{
+		if (declaration->function.body == nullptr)
+		{
+			sema_report_error(
+			    &declaration->function.signature.source_span,
+			    "Function '%s' does not have a body! Please provide a body for the function. If you want to declare a "
+			    "foreign function, please use the 'foreign' attribute.",
+			    declaration->function.signature.name);
+		}
+
 		sema_push_scope(sema_context, declaration->function.body);
 
 		result = sema_analyse_compound_statement(sema_context, declaration->function.body);
@@ -612,10 +715,6 @@ bool sema_analyse_function_declaration(SemaContext* sema_context, Declaration* d
 		// void
 
 		Statement* function_body = declaration->function.body;
-	}
-	else
-	{
-		// only the signature is defined for the function with foreign attribute!! TODO
 	}
 
 	declaration->resolve_status = RESOLVE_STATUS_RESOLVED;

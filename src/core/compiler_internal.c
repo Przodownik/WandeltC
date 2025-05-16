@@ -33,6 +33,7 @@ void compiler_internal_initialize(void)
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_IF_KEYWORD), TOKEN_IF_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_ELSE_KEYWORD), TOKEN_ELSE_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_WHILE_KEYWORD), TOKEN_WHILE_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_FOREIGN_KEYWORD), TOKEN_FOREIGN_KEYWORD);
 
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_VOID_KEYWORD), TOKEN_VOID_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_BOOL_KEYWORD), TOKEN_BOOL_KEYWORD);
@@ -119,6 +120,20 @@ const char* type_kind_to_string(TypeKind kind)
 	default:
 		return "unknown";
 	}
+}
+
+bool has_attribute(Attribute* attributes, AttributeKind kind)
+{
+	if (attributes == nullptr)
+		return false;
+
+	for (uint64 i = 0; i < vector_get_length(attributes); ++i)
+	{
+		if (attributes[i].kind == kind)
+			return true;
+	}
+
+	return false;
 }
 
 const char* binary_operator_to_string(BinaryOperator op)

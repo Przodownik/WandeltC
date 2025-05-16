@@ -22,6 +22,8 @@ const char* token_type_to_string(TokenType type)
 		return "else";
 	case TOKEN_WHILE_KEYWORD:
 		return "while";
+	case TOKEN_FOREIGN_KEYWORD:
+		return "foreign";
 
 	case TOKEN_VOID_KEYWORD:
 		return "void";
@@ -104,6 +106,9 @@ const char* token_type_to_string(TokenType type)
 		return "->";
 	case TOKEN_COLON_COLON:
 		return "::";
+	case TOKEN_AT:
+		return "@";
+
 	case TOKEN_IDENTIFIER:
 		return "identifier";
 	case TOKEN_INTEGER:
@@ -150,6 +155,8 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_ELSE_KEYWORD";
 	case TOKEN_WHILE_KEYWORD:
 		return "TOKEN_WHILE_KEYWORD";
+	case TOKEN_FOREIGN_KEYWORD:
+		return "TOKEN_FOREIGN_KEYWORD";
 
 	case TOKEN_VOID_KEYWORD:
 		return "TOKEN_VOID_KEYWORD";
@@ -232,6 +239,9 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_ARROW";
 	case TOKEN_COLON_COLON:
 		return "TOKEN_COLON_COLON";
+	case TOKEN_AT:
+		return "TOKEN_AT";
+
 	case TOKEN_IDENTIFIER:
 		return "TOKEN_IDENTIFIER";
 	case TOKEN_INTEGER:
@@ -258,5 +268,5 @@ const char* token_type_to_enum_stringified(TokenType type)
 
 bool is_token_type_a_type_token(TokenType type)
 {
-	return type > TOKEN_WHILE_KEYWORD && type < TOKEN_OPEN_PAREN;
+	return type > TOKEN_FOREIGN_KEYWORD && type < TOKEN_OPEN_PAREN;
 }
