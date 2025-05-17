@@ -240,7 +240,7 @@ LLVMValueRef codegen_emit_binary_expression(CodegenContext* context, Expression*
 
 		return LLVMBuildICmp(context->llvm_builder, LLVMIntSLE, lhs, rhs, "less.or.equal");
 	}
-	case BINARY_OPERATOR_PERCENT: {
+	case BINARY_OPERATOR_MODULO: {
 		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
 		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
 
@@ -303,7 +303,7 @@ LLVMValueRef codegen_emit_cast_expression(CodegenContext* context, Expression* e
 	NOT_IMPLEMENTED;
 }
 
-static LLVMValueRef s_args[MAX_FN_PARAMETERS];
+static LLVMValueRef s_args[MAX_CALL_ARGUMENTS];
 
 LLVMTypeRef codegen_emit_function_type(CodegenContext* context, FunctionSignature* function_signature);
 

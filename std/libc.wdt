@@ -1,3 +1,61 @@
-package libc;
+// package libc;
 
+<*
+    @brief Writes a single character to standard output.
+    @param int The character to write, passed as an integer (ASCII).
+    @return The character written as an integer, or a negative value on error.
+*>
+fn int putchar(int) @foreign;
 
+<*
+    @brief Reads a single character from standard input.
+    @return The character read as an integer, or -1 (EOF) on error or end-of-file.
+*>
+fn int getchar() @foreign;
+
+<*
+    @brief Returns a pseudo-random number.
+    @return A pseudo-random integer between 0 and C's RAND_MAX.
+*>
+fn int rand() @foreign;
+
+<*
+    @brief Seeds the pseudo-random number generator used by rand().
+    @param uint The seed value to initialize the random number sequence.
+*>
+fn void srand(uint) @foreign;
+
+<*
+    @brief Returns the current calendar time.
+    @param int Typically passed as 0; ignored in many environments.
+    @return The number of seconds since January 1, 1970 (Unix epoch).
+*>
+fn int time(int) @foreign;
+
+<*
+    @brief Converts an uppercase letter to lowercase.
+    @param int The character to convert, as an integer.
+    @return The lowercase equivalent if input is uppercase; otherwise, the original character.
+*>
+fn int tolower(int) @foreign;
+
+<*
+    @brief Converts a lowercase letter to uppercase.
+    @param int The character to convert, as an integer.
+    @return The uppercase equivalent if input is lowercase; otherwise, the original character.
+*>
+fn int toupper(int) @foreign;
+
+<*
+    @brief Checks if a character is alphabetic (a–z or A–Z).
+    @param int The character to check, as an integer.
+    @return Non-zero if the character is alphabetic; 0 otherwise.
+*>
+fn int isalpha(int) @foreign;
+
+<*
+    @brief Checks if a character is a decimal digit (0–9).
+    @param int The character to check, as an integer.
+    @return Non-zero if the character is a digit; 0 otherwise.
+*>
+fn int isdigit(int) @foreign;

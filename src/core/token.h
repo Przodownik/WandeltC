@@ -5,12 +5,28 @@
  */
 #pragma once
 
+typedef struct _SourceSpan
+{
+	const File* source_file;
+	uint32 row;
+	uint32 column;
+	uint32 length;
+} SourceSpan;
+
+typedef struct _Token
+{
+	enum _TokenType type;
+	const char* lexeme;
+	SourceSpan source_span;
+} Token;
+
 // When adding a new token type:
-// 1) Add it to the switch inside token_type_to_string method.
-// 2) Add it to the switch inside token_type_to_enum_stringified method.
-// 3) If the token is a keyword add it to the symbol table inside compiler_internal_initialize method in
-//	  compiler_internal.h
-// 3a) And modify in bool is_token_type_a_type_token(TokenType type)
+// 1) Add it to the switch inside 'token_type_to_string' method.
+// 2) Add it to the switch inside 'token_type_to_enum_stringified' method.
+// 3)
+//	  a) If the token is a keyword add it to the symbol table inside compiler_internal_initialize method in
+//       compiler_internal.h
+//    b) And add case to the 'TOKEN_TYPE_KINDS' macro below.
 // 4) If it is also a type consider proper casts support.
 typedef enum _TokenType
 {
@@ -25,6 +41,11 @@ typedef enum _TokenType
 	TOKEN_ELSE_KEYWORD,         // else
 	TOKEN_WHILE_KEYWORD,        // while
 	TOKEN_FOREIGN_KEYWORD,      // foreign
+	TOKEN_MODULE_KEYWORD,       // module
+	TOKEN_IMPORT_KEYWORD,       // import
+	TOKEN_AS_KEYWORD,           // as
+	TOKEN_ALIAS_KEYWORD,        // alias
+	TOKEN_FROM_KEYWORD,         // from
 
 	// builtin types
 	TOKEN_VOID_KEYWORD,   // void
@@ -84,7 +105,24 @@ typedef enum _TokenType
 	TOKEN_CHARACTER,  // e.g.'c'
 	TOKEN_UNKNOWN,
 	TOKEN_EOF,
+
+	TOKEN_TYPE_COUNT
 } TokenType;
+
+// All cases for builtin types
+#define TOKEN_TYPE_KINDS       \
+	case TOKEN_VOID_KEYWORD:   \
+	case TOKEN_BOOL_KEYWORD:   \
+	case TOKEN_CHAR_KEYWORD:   \
+	case TOKEN_UCHAR_KEYWORD:  \
+	case TOKEN_SHORT_KEYWORD:  \
+	case TOKEN_USHORT_KEYWORD: \
+	case TOKEN_INT_KEYWORD:    \
+	case TOKEN_UINT_KEYWORD:   \
+	case TOKEN_LONG_KEYWORD:   \
+	case TOKEN_ULONG_KEYWORD:  \
+	case TOKEN_FLOAT_KEYWORD:  \
+	case TOKEN_DOUBLE_KEYWORD
 
 /**
  * @brief Converts a TokenType to a string representation. e.g. uint

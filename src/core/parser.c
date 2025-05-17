@@ -592,40 +592,6 @@ Expression* parse_primary_expression(Parser* parser)
 	}
 }
 
-BinaryOperator token_type_to_binary_operator(TokenType type)
-{
-	switch (type)
-	{
-	case TOKEN_PLUS:
-		return BINARY_OPERATOR_ADD;
-	case TOKEN_MINUS:
-		return BINARY_OPERATOR_SUBTRACT;
-	case TOKEN_STAR:
-		return BINARY_OPERATOR_MULTIPLY;
-	case TOKEN_SLASH:
-		return BINARY_OPERATOR_DIVIDE;
-	case TOKEN_EQUAL_EQUAL:
-		return BINARY_OPERATOR_EQUAL;
-	case TOKEN_NOT_EQUAL:
-		return BINARY_OPERATOR_NOT_EQUAL;
-	case TOKEN_LESS:
-		return BINARY_OPERATOR_LESS;
-	case TOKEN_LESS_OR_EQUAL:
-		return BINARY_OPERATOR_LESS_OR_EQUAL;
-	case TOKEN_GREATER:
-		return BINARY_OPERATOR_GREATER;
-	case TOKEN_GREATER_OR_EQUAL:
-		return BINARY_OPERATOR_GREATER_OR_EQUAL;
-	case TOKEN_EQUAL:
-		return BINARY_OPERATOR_ASSIGN;
-	case TOKEN_PERCENT:
-		return BINARY_OPERATOR_PERCENT;
-	default:
-		ASSERT(false, "Invalid token type for binary operator");
-		return BINARY_OPERATOR_INVALID;
-	}
-}
-
 Expression* parse_expression_rhs(Parser* parser, Expression* lhs, int8 min_precedence)
 {
 	while (true)

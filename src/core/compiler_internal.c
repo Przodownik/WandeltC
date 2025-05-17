@@ -34,6 +34,11 @@ void compiler_internal_initialize(void)
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_ELSE_KEYWORD), TOKEN_ELSE_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_WHILE_KEYWORD), TOKEN_WHILE_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_FOREIGN_KEYWORD), TOKEN_FOREIGN_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_MODULE_KEYWORD), TOKEN_MODULE_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_IMPORT_KEYWORD), TOKEN_IMPORT_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_AS_KEYWORD), TOKEN_AS_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_ALIAS_KEYWORD), TOKEN_ALIAS_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_FROM_KEYWORD), TOKEN_FROM_KEYWORD);
 
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_VOID_KEYWORD), TOKEN_VOID_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_BOOL_KEYWORD), TOKEN_BOOL_KEYWORD);
@@ -85,43 +90,6 @@ void compiler_internal_shutdown(void)
 	vector_destroy(global_context.functions_declarations);
 }
 
-const char* type_kind_to_string(TypeKind kind)
-{
-	switch (kind)
-	{
-	case TYPE_KIND_FUNCTION:
-		return "function";
-
-	case TYPE_KIND_VOID:
-		return "void";
-	case TYPE_KIND_BOOL:
-		return "bool";
-	case TYPE_KIND_CHAR:
-		return "char";
-	case TYPE_KIND_UCHAR:
-		return "uchar";
-	case TYPE_KIND_SHORT:
-		return "short";
-	case TYPE_KIND_USHORT:
-		return "ushort";
-	case TYPE_KIND_INT:
-		return "int";
-	case TYPE_KIND_UINT:
-		return "uint";
-	case TYPE_KIND_LONG:
-		return "long";
-	case TYPE_KIND_ULONG:
-		return "ulong";
-	case TYPE_KIND_FLOAT:
-		return "float";
-	case TYPE_KIND_DOUBLE:
-		return "double";
-
-	default:
-		return "unknown";
-	}
-}
-
 bool has_attribute(Attribute* attributes, AttributeKind kind)
 {
 	if (attributes == nullptr)
@@ -134,59 +102,6 @@ bool has_attribute(Attribute* attributes, AttributeKind kind)
 	}
 
 	return false;
-}
-
-const char* binary_operator_to_string(BinaryOperator op)
-{
-	switch (op)
-	{
-	case BINARY_OPERATOR_ADD:
-		return "+";
-	case BINARY_OPERATOR_SUBTRACT:
-		return "-";
-	case BINARY_OPERATOR_MULTIPLY:
-		return "*";
-	case BINARY_OPERATOR_DIVIDE:
-		return "/";
-	case BINARY_OPERATOR_EQUAL:
-		return "==";
-	case BINARY_OPERATOR_NOT_EQUAL:
-		return "!=";
-	case BINARY_OPERATOR_GREATER:
-		return ">";
-	case BINARY_OPERATOR_LESS:
-		return "<";
-	case BINARY_OPERATOR_GREATER_OR_EQUAL:
-		return ">=";
-	case BINARY_OPERATOR_LESS_OR_EQUAL:
-		return "<=";
-	case BINARY_OPERATOR_ASSIGN:
-		return "=";
-	default:
-		return "unknown";
-	}
-}
-
-const char* unary_operator_to_string(UnaryOperator op)
-{
-	switch (op)
-	{
-	case UNARY_OPERATOR_NEGATE:
-		return "-";
-	default:
-		return "unknown";
-	}
-}
-
-const char* assign_operator_to_string(AssignOperator op)
-{
-	switch (op)
-	{
-	case ASSIGN_OPERATOR_ASSIGN:
-		return "=";
-	default:
-		return "unknown";
-	}
 }
 
 void emit_declaration_json(Declaration* decl, cJSON* element);

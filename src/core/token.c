@@ -2,6 +2,9 @@
 
 const char* token_type_to_string(TokenType type)
 {
+	static_assert(TOKEN_TYPE_COUNT == 65, "'const char* token_type_to_string(TokenType type)' must be updated to match "
+	                                      "the number of tokens in the enum.");
+
 	switch (type)
 	{
 	case TOKEN_FUNCTION_KEYWORD:
@@ -24,6 +27,16 @@ const char* token_type_to_string(TokenType type)
 		return "while";
 	case TOKEN_FOREIGN_KEYWORD:
 		return "foreign";
+	case TOKEN_MODULE_KEYWORD:
+		return "module";
+	case TOKEN_IMPORT_KEYWORD:
+		return "import";
+	case TOKEN_AS_KEYWORD:
+		return "as";
+	case TOKEN_ALIAS_KEYWORD:
+		return "alias";
+	case TOKEN_FROM_KEYWORD:
+		return "from";
 
 	case TOKEN_VOID_KEYWORD:
 		return "void";
@@ -125,7 +138,6 @@ const char* token_type_to_string(TokenType type)
 		return "unknown";
 	case TOKEN_EOF:
 		return "EOF";
-	case TOKEN_KEYWORD_COUNT:
 	default:
 		break;
 	}
@@ -135,6 +147,10 @@ const char* token_type_to_string(TokenType type)
 
 const char* token_type_to_enum_stringified(TokenType type)
 {
+	static_assert(TOKEN_TYPE_COUNT == 65,
+	              "'const char* token_type_to_enum_stringified(TokenType type)' must be updated to "
+	              "match the number of tokens in the enum.");
+
 	switch (type)
 	{
 	case TOKEN_FUNCTION_KEYWORD:
@@ -157,6 +173,16 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_WHILE_KEYWORD";
 	case TOKEN_FOREIGN_KEYWORD:
 		return "TOKEN_FOREIGN_KEYWORD";
+	case TOKEN_MODULE_KEYWORD:
+		return "TOKEN_MODULE_KEYWORD";
+	case TOKEN_IMPORT_KEYWORD:
+		return "TOKEN_IMPORT_KEYWORD";
+	case TOKEN_AS_KEYWORD:
+		return "TOKEN_AS_KEYWORD";
+	case TOKEN_ALIAS_KEYWORD:
+		return "TOKEN_ALIAS_KEYWORD";
+	case TOKEN_FROM_KEYWORD:
+		return "TOKEN_FROM_KEYWORD";
 
 	case TOKEN_VOID_KEYWORD:
 		return "TOKEN_VOID_KEYWORD";
@@ -258,7 +284,6 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_UNKNOWN";
 	case TOKEN_EOF:
 		return "TOKEN_EOF";
-	case TOKEN_KEYWORD_COUNT:
 	default:
 		break;
 	}
@@ -268,5 +293,11 @@ const char* token_type_to_enum_stringified(TokenType type)
 
 bool is_token_type_a_type_token(TokenType type)
 {
-	return type > TOKEN_FOREIGN_KEYWORD && type < TOKEN_OPEN_PAREN;
+	switch (type)
+	{
+	TOKEN_TYPE_KINDS:
+		return true;
+	default:
+		return false;
+	}
 }

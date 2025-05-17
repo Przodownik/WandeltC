@@ -33,16 +33,18 @@ bool run_linker(const char* args_string)
 	PROCESS_INFORMATION pi = {0};
 	si.cb                  = sizeof(si);
 
-	if (!CreateProcessA(NULL,        // Application name (NULL means use command line)
-	                    args_string, // Command line
-	                    NULL,        // Process attributes
-	                    NULL,        // Thread attributes
-	                    FALSE,       // Inherit handles
-	                    0,           // Creation flags
-	                    NULL,        // Environment (NULL = inherit)
-	                    NULL,        // Current directory (NULL = inherit)
-	                    &si,         // Startup info
-	                    &pi))        // Process info
+	LPSTR str = args_string;
+
+	if (!CreateProcessA(NULL,  // Application name (NULL means use command line)
+	                    str,   // Command line
+	                    NULL,  // Process attributes
+	                    NULL,  // Thread attributes
+	                    FALSE, // Inherit handles
+	                    0,     // Creation flags
+	                    NULL,  // Environment (NULL = inherit)
+	                    NULL,  // Current directory (NULL = inherit)
+	                    &si,   // Startup info
+	                    &pi))  // Process info
 	{
 		VERROR("ERROR: CreateProcess failed (%lu)\n", GetLastError());
 		return false;

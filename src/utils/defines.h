@@ -77,6 +77,12 @@ static_assert(sizeof(bool32) == 4, "bool32 is not 4 bytes");
 #define ANSI_BG_COLOR_WHITE   "\x1b[47m"
 #define ANSI_COLOR_RESET      "\x1b[0m"
 
+// Yellow highlight red text
+#define YHRT(text) ANSI_COLOR_YELLOW text ANSI_COLOR_RED
+
+// Yellow highlight orange text
+#define YHOT(text) ANSI_COLOR_YELLOW text ANSI_COLOR_ORANGE
+
 #define nullptr NULL
 
 #define KB(x) ((x) * 1024)

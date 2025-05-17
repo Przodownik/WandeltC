@@ -80,7 +80,7 @@
         "keywords": {
             "patterns": [
                 {
-                    "match": "\\b(fn|return|true|false|if|else|while|for|foreign|package)\\b",
+                    "match": "\\b(fn|return|true|false|if|else|while|for|foreign|module|import|from|as|alias)\\b",
                     "name": "keyword.control"
                 }
             ]
