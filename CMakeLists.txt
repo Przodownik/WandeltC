@@ -11,6 +11,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # Export compile commands for clangd
 include(FetchContent)
 include(FeatureSummary)
 
+set(WDT_DYNAMIC_RUNTIME ON)
+
 if(MSVC)
     # Tell CMake that MSVC supports C23
     set(CMAKE_C23_STANDARD_COMPILE_OPTION "/std:clatest")
@@ -28,7 +30,12 @@ if(MSVC)
     # /wd4061: Suppresses warnings about missing switch cases
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Od /Zi /utf-8 /wd5045 /wd4820 /wd4599 /wd4061")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /O2 /utf-8 /wd5045 /wd4820 /wd4599 /wd4061")
-    # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+    if(WDT_DYNAMIC_RUNTIME)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
 endif()
 
 add_subdirectory(src)
@@ -63,9 +70,10 @@ elseif(APPLE)
     # target_compile_definitions(WandeltTests PRIVATE WDT_PLATFORM_MACOS)
 endif()
 
-if (MSVC)
+if(MSVC)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WDT_COMPILER_MSVC)
     target_compile_definitions(WandeltCore PRIVATE WDT_COMPILER_MSVC)
+
     # target_compile_definitions(WandeltTests PRIVATE WDT_COMPILER_MSVC)
 endif()
 
@@ -112,4 +120,13 @@ if(WIN32)
     set(CPACK_NSIS_PACKAGE_NAME "Wandelt Compiler")
 endif()
 
+set(CPACK_SOURCE_IGNORE_FILES
+    "/\\\\.vs/"
+    "/\\\\.git/"
+    "\\\\.db$"
+    "\\\\.cache$"
+)
+
 include(CPack)
+
+# cpack -G NSIS

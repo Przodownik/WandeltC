@@ -1,15 +1,16 @@
-fn int putchar(char) @foreign;
 
-fn int add(int x)
-{
-    return x * 2;
-}
+fn int putchar(int) @foreign;
 
 fn int main()
 {
-    int x = 12;
+    char character = 'a';
 
-    int res = putchar('x');
-    
-    return add(x + 8) + add(x + 8);
+    while (character <= 'z')
+    {
+        putchar(int(character));
+     
+        character = character + char(1);
+    }
+
+    return 0;
 }

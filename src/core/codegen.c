@@ -111,6 +111,12 @@ LLVMValueRef codegen_emit_char_to_uchar(CodegenContext* context, LLVMValueRef va
 	return casted;
 }
 
+LLVMValueRef codegen_emit_cast_char_to_int(CodegenContext* context, LLVMValueRef value)
+{
+	LLVMValueRef casted = LLVMBuildZExt(context->llvm_builder, value, context->int_type, "char.to.int");
+	return casted;
+}
+
 LLVMValueRef codegen_emit_short_to_ushort(CodegenContext* context, LLVMValueRef value)
 {
 	LLVMValueRef casted = LLVMBuildZExt(context->llvm_builder, value, context->short_type, "short.to.ushort");
@@ -121,6 +127,20 @@ LLVMValueRef codegen_emit_cast_int_to_uint(CodegenContext* context, LLVMValueRef
 {
 	LLVMValueRef casted = LLVMBuildZExt(context->llvm_builder, value, context->int_type, "int.to.uint");
 	return casted;
+}
+
+LLVMValueRef codegen_emit_cast_int_to_char(CodegenContext* context, LLVMValueRef value)
+{
+	LLVMValueRef casted = LLVMBuildTrunc(context->llvm_builder, value, context->char_type, "int.to.char");
+	return casted;
+}
+
+LLVMValueRef codegen_emit_cast_int_to_uchar(CodegenContext* context, LLVMValueRef value)
+{
+	LLVMValueRef masked =
+	    LLVMBuildAnd(context->llvm_builder, value, LLVMConstInt(LLVMTypeOf(value), 0xFF, false), "mask.to.uchar");
+
+	return LLVMBuildTrunc(context->llvm_builder, masked, context->char_type, "int.to.uchar");
 }
 
 LLVMValueRef codegen_emit_long_to_ulong(CodegenContext* context, LLVMValueRef value)
@@ -245,10 +265,16 @@ LLVMValueRef codegen_emit_cast_expression(CodegenContext* context, Expression* e
 		return codegen_emit_cast_bool_to_int(context, value);
 	case CAST_CHAR_TO_UCHAR:
 		return codegen_emit_char_to_uchar(context, value);
+	case CAST_CHAR_TO_INT:
+		return codegen_emit_cast_char_to_int(context, value);
 	case CAST_SHORT_TO_USHORT:
 		return codegen_emit_short_to_ushort(context, value);
 	case CAST_INT_TO_UINT:
 		return codegen_emit_cast_int_to_uint(context, value);
+	case CAST_INT_TO_CHAR:
+		return codegen_emit_cast_int_to_char(context, value);
+	case CAST_INT_TO_UCHAR:
+		return codegen_emit_cast_int_to_uchar(context, value);
 	case CAST_LONG_TO_ULONG:
 		return codegen_emit_long_to_ulong(context, value);
 	case CAST_INT_TO_SHORT:
@@ -711,8 +737,11 @@ void codegen_generate(CompilerBuildOptions* build_options)
 
 	TRACE(ANSI_COLOR_CYAN "Linking started...\n" ANSI_COLOR_RESET);
 
-	const char* linker = "lld-link main.obj /subsystem:console /entry:mainCRTStartup /out:main.exe kernel32.lib "
-	                     "libcmt.lib /incremental /threads:2 /opt:noref";
+	const char* linker = "lld-link main.obj /subsystem:console /out:main.exe kernel32.lib "
+	                     "libcmt.lib /threads:2";
+
+	// const char* linker = "lld-link main.obj /subsystem:console /entry:mainCRTStartup /out:main.exe kernel32.lib "
+	//"libcmt.lib /incremental /threads:2 /opt:noref";
 
 	if (!run_linker(linker))
 	{
