@@ -519,7 +519,7 @@ LLVMTypeRef codegen_emit_function_type(CodegenContext* context, FunctionSignatur
 	return LLVMFunctionType(return_type, nullptr, 0, false);
 }
 
-void codegen_emit_function(CodegenContext* context, Declaration* declaration)
+void codegen_emit_function_declaration(CodegenContext* context, Declaration* declaration)
 {
 	FunctionSignature fn_signature = declaration->function.signature;
 
@@ -537,12 +537,19 @@ void codegen_emit_function(CodegenContext* context, Declaration* declaration)
 		LLVMSetLinkage(function, LLVMExternalLinkage);
 	}
 
+	declaration->handle = function;
+}
+
+void codegen_emit_function_body(CodegenContext* context, Declaration* declaration)
+{
+	FunctionSignature fn_signature = declaration->function.signature;
+
 	if (declaration->function.body)
 	{
 		LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(context->llvm_context, declaration->handle, "entry");
 		LLVMPositionBuilderAtEnd(context->llvm_builder, entry);
 
-		context->current_function = function;
+		context->current_function = declaration->handle;
 
 		if (fn_signature.parameters != nullptr)
 		{
@@ -553,7 +560,7 @@ void codegen_emit_function(CodegenContext* context, Declaration* declaration)
 
 				LLVMValueRef alloca = LLVMBuildAlloca(context->llvm_builder, param_type, param_decl->variable.name);
 
-				LLVMValueRef param_value = LLVMGetParam(function, (uint32)i);
+				LLVMValueRef param_value = LLVMGetParam(declaration->handle, (uint32)i);
 				LLVMBuildStore(context->llvm_builder, param_value, alloca);
 
 				param_decl->handle = alloca;
@@ -562,8 +569,6 @@ void codegen_emit_function(CodegenContext* context, Declaration* declaration)
 
 		codegen_emit_compound_statement(context, declaration->function.body->compound.first);
 	}
-
-	declaration->handle = function;
 
 	// if (fn_signature.parameters != nullptr)
 	// vector_destroy(declaration->function.signature.parameters); // free params vector
@@ -657,11 +662,10 @@ void codegen_generate(CompilerBuildOptions* build_options)
 	Clock clock = clock_create();
 
 	for (uint64 i = 0; i < vector_get_length(global_context.functions_declarations); ++i)
-	{
-		Declaration* function_declaration = global_context.functions_declarations[i];
+		codegen_emit_function_declaration(&context, global_context.functions_declarations[i]);
 
-		codegen_emit_function(&context, function_declaration);
-	}
+	for (uint64 i = 0; i < vector_get_length(global_context.functions_declarations); ++i)
+		codegen_emit_function_body(&context, global_context.functions_declarations[i]);
 
 	char* error = "";
 	if (LLVMVerifyModule(context.llvm_module, LLVMPrintMessageAction, &error))

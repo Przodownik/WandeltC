@@ -1,0 +1,52 @@
+fn int duplicate2(int x)
+{
+    return x * 2;
+}
+
+fn int main()
+{
+    int x = 12;
+
+    return duplicate(x);
+}
+
+fn int duplicate(int x)
+{
+    return duplicate2(x * 2);
+}
+
+<*
+#expect
+; ModuleID = 'module:core'
+source_filename = "main.wdt"
+target datalayout = ""
+target triple = ""
+
+define i32 @duplicate2(i32 %0) {
+entry:
+  %x = alloca i32, align 4
+  store i32 %0, ptr %x, align 4
+  %x1 = load i32, ptr %x, align 4
+  %mul = mul i32 %x1, 2
+  ret i32 %mul
+}
+
+define i32 @main() {
+entry:
+  %x = alloca i32, align 4
+  store i32 12, ptr %x, align 4
+  %x1 = load i32, ptr %x, align 4
+  %duplicate = call i32 @duplicate(i32 %x1)
+  ret i32 %duplicate
+}
+
+define i32 @duplicate(i32 %0) {
+entry:
+  %x = alloca i32, align 4
+  store i32 %0, ptr %x, align 4
+  %x1 = load i32, ptr %x, align 4
+  %mul = mul i32 %x1, 2
+  %duplicate2 = call i32 @duplicate2(i32 %mul)
+  ret i32 %duplicate2
+}
+*>

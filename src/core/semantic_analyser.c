@@ -36,7 +36,8 @@ typedef struct _SemaContext
 	Declaration* current_function;
 	int32 current_scope_depth;
 	Scope scopes[MAX_SCOPE_DEPTH];
-	Declaration** analysed_functions;
+	HashMap defined_functions;
+	HashMap analysed_functions;
 } SemaContext;
 
 bool sema_analyse_statement(SemaContext* sema_context, Statement* statement);
@@ -55,28 +56,36 @@ void sema_pop_scope(SemaContext* sema_context)
 	sema_context->current_scope = &sema_context->scopes[sema_context->current_scope_depth];
 }
 
-Declaration* sema_try_get_defined_function(SemaContext* sema_context, const char* name)
+Declaration* sema_try_get_function_from_map(HashMap* map, const char* name)
 {
-	for (uint64 i = 0; i < vector_get_length(sema_context->analysed_functions); ++i)
+	Declaration** decl = (Declaration**)hash_map_get_value(map, name);
+	if (decl != nullptr)
 	{
-		Declaration* function_declaration = sema_context->analysed_functions[i];
-		if (strcmp(function_declaration->function.signature.name, name) == 0)
+		Declaration* function_declaration = *decl;
+
+		if (function_declaration->resolve_status == RESOLVE_STATUS_RESOLVING)
 		{
-			if (function_declaration->resolve_status == RESOLVE_STATUS_RESOLVING)
-			{
-				sema_report_error(
-				    &function_declaration->source_span,
-				    "Function '%s' is being resolved recursively. Please check for circular dependencies.",
-				    function_declaration->function.signature.name);
+			sema_report_error(&function_declaration->source_span,
+			                  "Function '%s' is being resolved recursively. Please check for circular dependencies.",
+			                  function_declaration->function.signature.name);
 
-				return nullptr;
-			}
-
-			return function_declaration;
+			return nullptr;
 		}
+
+		return function_declaration;
 	}
 
 	return nullptr;
+}
+
+Declaration* sema_try_get_defined_function(SemaContext* sema_context, const char* name)
+{
+	return sema_try_get_function_from_map(&sema_context->defined_functions, name);
+}
+
+Declaration* sema_try_get_analysed_function(SemaContext* sema_context, const char* name)
+{
+	return sema_try_get_function_from_map(&sema_context->analysed_functions, name);
 }
 
 bool sema_analyse_compound_statement(SemaContext* sema_context, Statement* statement)
@@ -475,7 +484,7 @@ bool sema_analyse_statement(SemaContext* sema_context, Statement* statement)
 	UNREACHABLE;
 }
 
-bool sema_analyse_function_declaration(SemaContext* sema_context, Declaration* declaration)
+bool sema_analyse_function_declaration_shallow(SemaContext* sema_context, Declaration* declaration)
 {
 	Declaration* existing_function = sema_try_get_defined_function(sema_context, declaration->function.signature.name);
 	if (existing_function != nullptr)
@@ -487,6 +496,13 @@ bool sema_analyse_function_declaration(SemaContext* sema_context, Declaration* d
 		return false;
 	}
 
+	hash_map_set(&sema_context->defined_functions, declaration->function.signature.name, declaration);
+
+	return true;
+}
+
+bool sema_analyse_function_declaration_deep(SemaContext* sema_context, Declaration* declaration)
+{
 	bool result = false;
 
 	sema_context->current_function = declaration;
@@ -580,7 +596,7 @@ bool sema_analyse_function_declaration(SemaContext* sema_context, Declaration* d
 
 	declaration->resolve_status = RESOLVE_STATUS_RESOLVED;
 
-	vector_push(sema_context->analysed_functions, declaration);
+	hash_map_set(&sema_context->analysed_functions, declaration->function.signature.name, declaration);
 
 	return result;
 }
@@ -589,23 +605,27 @@ void sema_analyse_parsed_context(Context* context)
 {
 	TRACE(ANSI_COLOR_CYAN "Semantic analysis file...\n" ANSI_COLOR_RESET);
 
+	uint64 function_count = vector_get_length(context->functions_declarations);
+
 	SemaContext sema_context        = {0};
-	sema_context.analysed_functions = vector_create(5, sizeof(Declaration*));
+	sema_context.defined_functions  = hash_map_create(sizeof(Declaration*), function_count + 1);
+	sema_context.analysed_functions = hash_map_create(sizeof(Declaration*), function_count + 1);
 
 	Clock clock = clock_create();
 
-	for (uint64 i = 0; i < vector_get_length(context->functions_declarations); ++i)
-	{
-		Declaration* function_declaration = context->functions_declarations[i];
+	// Sema I pass - check for function declarations
+	for (uint64 i = 0; i < function_count; ++i)
+		sema_analyse_function_declaration_shallow(&sema_context, context->functions_declarations[i]);
 
-		sema_analyse_function_declaration(&sema_context, function_declaration);
-	}
+	// Sema II pass - analyse functions
+	for (uint64 i = 0; i < function_count; ++i)
+		sema_analyse_function_declaration_deep(&sema_context, context->functions_declarations[i]);
 
 	// check if main function is defined
 	// do not check it if there are any errors, because it could be a false positive
 	if (context->error_count == 0)
 	{
-		Declaration* main_function = sema_try_get_defined_function(&sema_context, "main");
+		Declaration* main_function = sema_try_get_analysed_function(&sema_context, "main");
 
 		if (main_function == nullptr)
 		{
@@ -624,7 +644,8 @@ void sema_analyse_parsed_context(Context* context)
 		}
 	}
 
-	vector_destroy(sema_context.analysed_functions);
+	hash_map_destroy(&sema_context.defined_functions);
+	hash_map_destroy(&sema_context.analysed_functions);
 
 	TRACE(ANSI_COLOR_CYAN "Semantic analysis took %f ms\n" ANSI_COLOR_RESET, clock_get_elapsed_time(&clock) * 1000.0f);
 }
