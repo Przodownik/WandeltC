@@ -23,7 +23,7 @@ fn int main()
     return x;
 }
 
-/*
+<*
 #expect
 ; ModuleID = 'module:core'
 source_filename = "main.wdt"
@@ -63,4 +63,4 @@ if.else4:                                         ; preds = %if.else
 if.merge5:                                        ; preds = %if.else4, %if.then3
   br label %if.merge
 }
-*/
+*>

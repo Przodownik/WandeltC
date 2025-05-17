@@ -15,13 +15,13 @@ TEST_DIR = "wandelt"
 OUTPUT_LL_PATH = "output.ll"
 
 def extract_expected_ir(content):
-    match = re.search(r"/\*\s*#expect(.*?)\*/", content, re.DOTALL)
+    match = re.search(r"<\*\s*#expect(.*?)\*>", content, re.DOTALL)
     if match:
         return match.group(1).strip()
     return None
 
 def extract_expected_fail(content):
-    match = re.search(r"/\*\s*#expectfail(.*?)\*/", content, re.DOTALL)
+    match = re.search(r"<\*\s*#expectfail(.*?)\*>", content, re.DOTALL)
     if match:
         return match.group(1).strip()
     return None

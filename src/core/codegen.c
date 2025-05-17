@@ -15,6 +15,7 @@ typedef struct _CodegenContext
 	LLVMModuleRef llvm_module;
 	LLVMBuilderRef llvm_builder;
 
+	LLVMTypeRef void_type;
 	LLVMTypeRef bool_type;
 	LLVMTypeRef char_type;
 	LLVMTypeRef short_type;
@@ -64,6 +65,8 @@ LLVMTypeRef codegen_emit_type(CodegenContext* context, Type* type)
 {
 	switch (type->kind)
 	{
+	case TYPE_KIND_VOID:
+		return context->void_type;
 	case TYPE_KIND_BOOL:
 		return context->bool_type;
 	case TYPE_KIND_CHAR:
@@ -237,6 +240,12 @@ LLVMValueRef codegen_emit_binary_expression(CodegenContext* context, Expression*
 
 		return LLVMBuildICmp(context->llvm_builder, LLVMIntSLE, lhs, rhs, "less.or.equal");
 	}
+	case BINARY_OPERATOR_PERCENT: {
+		LLVMValueRef lhs = codegen_emit_expression(context, expression->binary.left);
+		LLVMValueRef rhs = codegen_emit_expression(context, expression->binary.right);
+
+		return LLVMBuildSRem(context->llvm_builder, lhs, rhs, "modulo");
+	}
 	case BINARY_OPERATOR_ASSIGN: {
 		LLVMValueRef variable = expression->binary.left->identifier.refered->handle;
 		LLVMValueRef rhs      = codegen_emit_expression(context, expression->binary.right);
@@ -285,6 +294,8 @@ LLVMValueRef codegen_emit_cast_expression(CodegenContext* context, Expression* e
 		return codegen_emit_int_to_ulong(context, value);
 	case CAST_INT_TO_USHORT:
 		return codegen_emit_int_to_ushort(context, value);
+	case CAST_SAME_TYPE:
+		return value;
 	default:
 		break;
 	}
@@ -302,17 +313,24 @@ LLVMValueRef codegen_emit_call_expression(CodegenContext* context, Expression* e
 
 	LLVMValueRef callee = expression->call.callee->identifier.refered->handle;
 
-	uint64 param_count = vector_get_length(function_declaration->function.signature.parameters);
+	uint64 param_count = 0;
 
-	for (uint64 i = 0; i < param_count; ++i)
+	if (function_declaration->function.signature.parameters != nullptr)
 	{
-		s_args[i] = codegen_emit_expression(context, expression->call.arguments[i]);
+		param_count = vector_get_length(function_declaration->function.signature.parameters);
+
+		for (uint64 i = 0; i < param_count; ++i)
+		{
+			s_args[i] = codegen_emit_expression(context, expression->call.arguments[i]);
+		}
 	}
 
 	LLVMTypeRef function_type = codegen_emit_function_type(context, &function_declaration->function.signature);
 
+	bool returns_void = function_declaration->function.signature.return_type->kind == TYPE_KIND_VOID;
+
 	return LLVMBuildCall2(context->llvm_builder, function_type, callee, s_args, (uint32)param_count,
-	                      function_declaration->function.signature.name);
+	                      returns_void ? "" : function_declaration->function.signature.name);
 }
 
 LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expression)
@@ -339,7 +357,7 @@ LLVMValueRef codegen_emit_expression(CodegenContext* context, Expression* expres
 		break;
 	}
 
-	ASSERT(false, "Invalid expression kind: %d\n", expression->kind);
+	UNREACHABLE;
 }
 
 void codegen_emit_return_statement(CodegenContext* context, Statement* statement)
@@ -617,6 +635,7 @@ void codegen_generate(CompilerBuildOptions* build_options)
 	context.llvm_module  = LLVMModuleCreateWithNameInContext("module:core", context.llvm_context);
 	context.llvm_builder = LLVMCreateBuilder();
 
+	context.void_type   = LLVMVoidTypeInContext(context.llvm_context);
 	context.bool_type   = LLVMInt1TypeInContext(context.llvm_context);
 	context.char_type   = LLVMInt8TypeInContext(context.llvm_context);
 	context.short_type  = LLVMInt16TypeInContext(context.llvm_context);

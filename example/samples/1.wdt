@@ -1,0 +1,16 @@
+fn int putchar(int) @foreign;
+fn int getchar() @foreign;
+
+fn int main()
+{
+    char character = char(getchar());
+
+    while (character <= 'z')
+    {
+        putchar(int(character));
+     
+        character = character + char(1);
+    }
+
+    return 0;
+}

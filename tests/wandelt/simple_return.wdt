@@ -3,7 +3,7 @@ fn int main()
     return 21;
 }
 
-/*
+<*
 #expect
 ; ModuleID = 'module:core'
 source_filename = "main.wdt"
@@ -14,4 +14,4 @@ define i32 @main() {
 entry:
   ret i32 21
 }
-*/
+*>

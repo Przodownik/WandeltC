@@ -122,17 +122,19 @@ void lexer_skip_whitespace(Lexer* lexer)
 				continue;
 			}
 
+			return;
+		case '<':
 			if (lexer_get_next_char(lexer) == '*')
 			{
-				lexer_skip_next(lexer, 2); // skip '*/'
+				lexer_skip_next(lexer, 2); // skip '<*'
 
 				while (true)
 				{
 					lexer_advance(lexer);
 
-					if (lexer_match(lexer, '*') && lexer_match_next(lexer, '/'))
+					if (lexer_match(lexer, '*') && lexer_match_next(lexer, '>'))
 					{
-						lexer_skip_next(lexer, 2); // skip '*/'
+						lexer_skip_next(lexer, 2); // skip '*>'
 						break;
 					}
 
@@ -510,6 +512,4 @@ bool lexer_try_get_next_token(Lexer* lexer)
 	} while (!lexer_is_eof(lexer));
 
 	exit_compiler(-1);
-
-	return false;
 }

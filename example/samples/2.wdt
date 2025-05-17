@@ -1,0 +1,34 @@
+fn int putchar(int) @foreign;
+fn int getchar() @foreign;
+fn int rand() @foreign;
+fn void srand(uint) @foreign;
+fn int time(int) @foreign;
+fn int tolower(int) @foreign;
+fn int toupper(int) @foreign;
+fn int isalpha(int) @foreign;
+fn int isdigit(int) @foreign;
+
+fn int main()
+{
+    int t = 2;
+
+    srand(uint(time(0)));
+    
+    char character = char(rand() % 26 + 97);
+
+    while (character <= 'z')
+    {
+        int upper = toupper(int(character));
+
+        putchar(upper);
+     
+        int lower = tolower(upper);
+
+        putchar(lower);
+
+        character = character + char(1);
+    }
+
+    return 0;
+}
+

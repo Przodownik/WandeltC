@@ -3,7 +3,7 @@ fn bool main()
     return false;
 }
 
-/*
+<*
 #expectfail
 1| fn bool main()
    ^^^^^^^^^^^^^^
@@ -11,4 +11,4 @@ fn bool main()
 3|     return false;
 Warning in file (wandelt\warnings\no_int_main.wdt) in row 1 in column 1
 Main function should return 'int', but it returns 'bool'
-*/
+*>

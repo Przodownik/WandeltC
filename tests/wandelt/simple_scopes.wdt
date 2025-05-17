@@ -9,7 +9,7 @@ fn int main()
     }
 }
 
-/*
+<*
 #expect
 ; ModuleID = 'module:core'
 source_filename = "main.wdt"
@@ -31,4 +31,4 @@ entry:
   %d4 = load i32, ptr %d, align 4
   ret i32 %d4
 }
-*/
+*>

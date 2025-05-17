@@ -7,7 +7,7 @@
 	return 12;
 }
 
-/*
+<*
 #expectfail
 3|                 return 12;
 4|             }
@@ -24,4 +24,4 @@ Function 'main' is being redefined!
 3|                 return 12;
 Error in file (wandelt\errors\indentation_diagnostics.wdt) in row 1 in column 13
 Function 'main' was already declared here!
-*/
+*>

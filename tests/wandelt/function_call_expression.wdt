@@ -10,7 +10,7 @@ fn int main()
     return add(x + 8);
 }
 
-/*
+<*
 #expect
 ; ModuleID = 'module:core'
 source_filename = "main.wdt"
@@ -35,4 +35,4 @@ entry:
   %add2 = call i32 @add(i32 %add)
   ret i32 %add2
 }
-*/
+*>

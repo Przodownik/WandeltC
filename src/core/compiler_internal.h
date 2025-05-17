@@ -164,9 +164,11 @@ typedef struct _VariableDeclaration
 typedef struct _Declaration
 {
 	DeclKind kind;
+
 	Visibility visibility;
 	SourceSpan source_span;
 	ResolveStatus resolve_status;
+
 	void* handle;
 
 	union {
@@ -257,6 +259,7 @@ typedef enum _BinaryOperator
 	BINARY_OPERATOR_GREATER_OR_EQUAL = TOKEN_GREATER_OR_EQUAL,
 	BINARY_OPERATOR_LESS_OR_EQUAL    = TOKEN_LESS_OR_EQUAL,
 	BINARY_OPERATOR_ASSIGN           = TOKEN_EQUAL,
+	BINARY_OPERATOR_PERCENT          = TOKEN_PERCENT,
 } BinaryOperator;
 
 const char* binary_operator_to_string(BinaryOperator op);
@@ -345,6 +348,7 @@ typedef struct _IdentifierExpression
 typedef enum _CastKind
 {
 	CAST_INVALID = 0,
+	CAST_SAME_TYPE,
 
 	// bool
 	CAST_BOOL_TO_CHAR,

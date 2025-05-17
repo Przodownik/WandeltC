@@ -28,7 +28,7 @@ fn int main4()
     return x;
 }
 
-/*
+<*
 #expectfail
 4|     bool y = false;
 5|
@@ -68,4 +68,4 @@ Binary operator '+' cannot be applied to different types 'bool' and 'int'. Unles
 28|     return x;
 Error in file (wandelt\errors\type_mismatches.wdt) in row 26 in column 5
 Variable 'x' of type 'bool' cannot be initialized with expression of type 'int'.
-*/
+*>

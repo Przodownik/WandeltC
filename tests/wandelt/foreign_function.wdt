@@ -23,7 +23,7 @@ fn int main()
     return 0;
 }
 
-/*
+<*
 #expect
 ; ModuleID = 'module:core'
 source_filename = "main.wdt"
@@ -72,4 +72,4 @@ while.loop6:                                      ; preds = %while.cond5
 while.merge7:                                     ; preds = %while.cond5
   ret i32 0
 }
-*/
+*>

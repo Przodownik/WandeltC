@@ -5,7 +5,7 @@ fn int main()
     return int(bool(int(x) + 12) > bool(12));
 }
 
-/*
+<*
 #expect
 ; ModuleID = 'module:core'
 source_filename = "main.wdt"
@@ -24,4 +24,4 @@ entry:
   %bool.to.int2 = zext i1 %greater to i32
   ret i32 %bool.to.int2
 }
-*/
+*>

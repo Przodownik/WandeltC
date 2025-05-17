@@ -25,7 +25,7 @@ fn int main2()
     return x;
 }
 
-/*
+<*
 #expectfail
 3|     int x = 10;
 4|
@@ -55,4 +55,4 @@ Expression statement with expression ';' is invalid here! Did you mean to assign
 25|     return x;
 Error in file (wandelt\errors\wrong_statement_expression.wdt) in row 23 in column 5
 Unexpected token '2' found! A statement was expected!
-*/
+*>

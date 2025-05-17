@@ -618,6 +618,8 @@ BinaryOperator token_type_to_binary_operator(TokenType type)
 		return BINARY_OPERATOR_GREATER_OR_EQUAL;
 	case TOKEN_EQUAL:
 		return BINARY_OPERATOR_ASSIGN;
+	case TOKEN_PERCENT:
+		return BINARY_OPERATOR_PERCENT;
 	default:
 		ASSERT(false, "Invalid token type for binary operator");
 		return BINARY_OPERATOR_INVALID;

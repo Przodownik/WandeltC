@@ -13,7 +13,7 @@ fn int ()
     return 234;
 }
 
-/*
+<*
 #expectfail
 1| int main()
    ^^^
@@ -41,4 +41,4 @@ Expected a valid return type and received 'main2'. Standard types include void, 
 13|     return 234;
 Error in file (wandelt\errors\top_level_stmt.wdt) in row 11 in column 8
 Expected an identifier and received '('
-*/
+*>

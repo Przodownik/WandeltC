@@ -62,6 +62,16 @@ Declaration* sema_try_get_defined_function(SemaContext* sema_context, const char
 		Declaration* function_declaration = sema_context->analysed_functions[i];
 		if (strcmp(function_declaration->function.signature.name, name) == 0)
 		{
+			if (function_declaration->resolve_status == RESOLVE_STATUS_RESOLVING)
+			{
+				sema_report_error(
+				    &function_declaration->source_span,
+				    "Function '%s' is being resolved recursively. Please check for circular dependencies.",
+				    function_declaration->function.signature.name);
+
+				return nullptr;
+			}
+
 			return function_declaration;
 		}
 	}
@@ -213,9 +223,24 @@ bool sema_analyse_expression(SemaContext* sema_context, Expression* expression);
 // Lookup table for cast kinds
 static const CastKind cast_kind_table[TYPE_KIND_DOUBLE + 1][TYPE_KIND_DOUBLE + 1] =
     {
+        [TYPE_KIND_VOID] =
+            {
+                [TYPE_KIND_VOID]   = CAST_INVALID,
+                [TYPE_KIND_BOOL]   = CAST_INVALID,
+                [TYPE_KIND_CHAR]   = CAST_INVALID,
+                [TYPE_KIND_UCHAR]  = CAST_INVALID,
+                [TYPE_KIND_SHORT]  = CAST_INVALID,
+                [TYPE_KIND_USHORT] = CAST_INVALID,
+                [TYPE_KIND_INT]    = CAST_INVALID,
+                [TYPE_KIND_UINT]   = CAST_INVALID,
+                [TYPE_KIND_LONG]   = CAST_INVALID,
+                [TYPE_KIND_ULONG]  = CAST_INVALID,
+                [TYPE_KIND_FLOAT]  = CAST_INVALID,
+                [TYPE_KIND_DOUBLE] = CAST_INVALID,
+            },
         [TYPE_KIND_BOOL] =
             {
-                [TYPE_KIND_BOOL]   = CAST_INVALID, // No-op cast
+                [TYPE_KIND_BOOL]   = CAST_SAME_TYPE,
                 [TYPE_KIND_CHAR]   = CAST_BOOL_TO_CHAR,
                 [TYPE_KIND_UCHAR]  = CAST_BOOL_TO_UCHAR,
                 [TYPE_KIND_SHORT]  = CAST_BOOL_TO_SHORT,
@@ -230,7 +255,7 @@ static const CastKind cast_kind_table[TYPE_KIND_DOUBLE + 1][TYPE_KIND_DOUBLE + 1
         [TYPE_KIND_CHAR] =
             {
                 [TYPE_KIND_BOOL]   = CAST_CHAR_TO_BOOL,
-                [TYPE_KIND_CHAR]   = CAST_INVALID, // No-op
+                [TYPE_KIND_CHAR]   = CAST_SAME_TYPE,
                 [TYPE_KIND_UCHAR]  = CAST_CHAR_TO_UCHAR,
                 [TYPE_KIND_SHORT]  = CAST_CHAR_TO_SHORT,
                 [TYPE_KIND_USHORT] = CAST_CHAR_TO_USHORT,
@@ -245,7 +270,7 @@ static const CastKind cast_kind_table[TYPE_KIND_DOUBLE + 1][TYPE_KIND_DOUBLE + 1
             {
                 [TYPE_KIND_BOOL]   = CAST_UCHAR_TO_BOOL,
                 [TYPE_KIND_CHAR]   = CAST_UCHAR_TO_CHAR,
-                [TYPE_KIND_UCHAR]  = CAST_INVALID, // No-op
+                [TYPE_KIND_UCHAR]  = CAST_SAME_TYPE,
                 [TYPE_KIND_SHORT]  = CAST_UCHAR_TO_SHORT,
                 [TYPE_KIND_USHORT] = CAST_UCHAR_TO_USHORT,
                 [TYPE_KIND_INT]    = CAST_UCHAR_TO_INT,
@@ -260,7 +285,7 @@ static const CastKind cast_kind_table[TYPE_KIND_DOUBLE + 1][TYPE_KIND_DOUBLE + 1
                 [TYPE_KIND_BOOL]   = CAST_SHORT_TO_BOOL,
                 [TYPE_KIND_CHAR]   = CAST_SHORT_TO_CHAR,
                 [TYPE_KIND_UCHAR]  = CAST_SHORT_TO_UCHAR,
-                [TYPE_KIND_SHORT]  = CAST_INVALID, // No-op
+                [TYPE_KIND_SHORT]  = CAST_SAME_TYPE,
                 [TYPE_KIND_USHORT] = CAST_SHORT_TO_USHORT,
                 [TYPE_KIND_INT]    = CAST_SHORT_TO_INT,
                 [TYPE_KIND_UINT]   = CAST_SHORT_TO_UINT,
@@ -275,7 +300,7 @@ static const CastKind cast_kind_table[TYPE_KIND_DOUBLE + 1][TYPE_KIND_DOUBLE + 1
                 [TYPE_KIND_CHAR]   = CAST_USHORT_TO_CHAR,
                 [TYPE_KIND_UCHAR]  = CAST_USHORT_TO_UCHAR,
                 [TYPE_KIND_SHORT]  = CAST_USHORT_TO_SHORT,
-                [TYPE_KIND_USHORT] = CAST_INVALID, // No-op
+                [TYPE_KIND_USHORT] = CAST_SAME_TYPE,
                 [TYPE_KIND_INT]    = CAST_USHORT_TO_INT,
                 [TYPE_KIND_UINT]   = CAST_USHORT_TO_UINT,
                 [TYPE_KIND_LONG]   = CAST_USHORT_TO_LONG,
@@ -290,7 +315,7 @@ static const CastKind cast_kind_table[TYPE_KIND_DOUBLE + 1][TYPE_KIND_DOUBLE + 1
                 [TYPE_KIND_UCHAR]  = CAST_INT_TO_UCHAR,
                 [TYPE_KIND_SHORT]  = CAST_INT_TO_SHORT,
                 [TYPE_KIND_USHORT] = CAST_INT_TO_USHORT,
-                [TYPE_KIND_INT]    = CAST_INVALID, // No-op
+                [TYPE_KIND_INT]    = CAST_SAME_TYPE,
                 [TYPE_KIND_UINT]   = CAST_INT_TO_UINT,
                 [TYPE_KIND_LONG]   = CAST_INT_TO_LONG,
                 [TYPE_KIND_ULONG]  = CAST_INT_TO_ULONG,
@@ -305,7 +330,7 @@ static const CastKind cast_kind_table[TYPE_KIND_DOUBLE + 1][TYPE_KIND_DOUBLE + 1
                 [TYPE_KIND_SHORT]  = CAST_UINT_TO_SHORT,
                 [TYPE_KIND_USHORT] = CAST_UINT_TO_USHORT,
                 [TYPE_KIND_INT]    = CAST_UINT_TO_INT,
-                [TYPE_KIND_UINT]   = CAST_INVALID, // No-op
+                [TYPE_KIND_UINT]   = CAST_SAME_TYPE,
                 [TYPE_KIND_LONG]   = CAST_UINT_TO_LONG,
                 [TYPE_KIND_ULONG]  = CAST_UINT_TO_ULONG,
                 [TYPE_KIND_FLOAT]  = CAST_UINT_TO_FLOAT,
@@ -320,7 +345,7 @@ static const CastKind cast_kind_table[TYPE_KIND_DOUBLE + 1][TYPE_KIND_DOUBLE + 1
                 [TYPE_KIND_USHORT] = CAST_LONG_TO_USHORT,
                 [TYPE_KIND_INT]    = CAST_LONG_TO_INT,
                 [TYPE_KIND_UINT]   = CAST_LONG_TO_UINT,
-                [TYPE_KIND_LONG]   = CAST_INVALID, // No-op
+                [TYPE_KIND_LONG]   = CAST_SAME_TYPE,
                 [TYPE_KIND_ULONG]  = CAST_LONG_TO_ULONG,
                 [TYPE_KIND_FLOAT]  = CAST_LONG_TO_FLOAT,
                 [TYPE_KIND_DOUBLE] = CAST_LONG_TO_DOUBLE,
@@ -335,7 +360,7 @@ static const CastKind cast_kind_table[TYPE_KIND_DOUBLE + 1][TYPE_KIND_DOUBLE + 1
                 [TYPE_KIND_INT]    = CAST_ULONG_TO_INT,
                 [TYPE_KIND_UINT]   = CAST_ULONG_TO_UINT,
                 [TYPE_KIND_LONG]   = CAST_ULONG_TO_LONG,
-                [TYPE_KIND_ULONG]  = CAST_INVALID, // No-op
+                [TYPE_KIND_ULONG]  = CAST_SAME_TYPE,
                 [TYPE_KIND_FLOAT]  = CAST_ULONG_TO_FLOAT,
                 [TYPE_KIND_DOUBLE] = CAST_ULONG_TO_DOUBLE,
             },
@@ -350,7 +375,7 @@ static const CastKind cast_kind_table[TYPE_KIND_DOUBLE + 1][TYPE_KIND_DOUBLE + 1
                 [TYPE_KIND_UINT]   = CAST_FLOAT_TO_UINT,
                 [TYPE_KIND_LONG]   = CAST_FLOAT_TO_LONG,
                 [TYPE_KIND_ULONG]  = CAST_FLOAT_TO_ULONG,
-                [TYPE_KIND_FLOAT]  = CAST_INVALID, // No-op
+                [TYPE_KIND_FLOAT]  = CAST_SAME_TYPE,
                 [TYPE_KIND_DOUBLE] = CAST_FLOAT_TO_DOUBLE,
             },
         [TYPE_KIND_DOUBLE] =
@@ -365,7 +390,7 @@ static const CastKind cast_kind_table[TYPE_KIND_DOUBLE + 1][TYPE_KIND_DOUBLE + 1
                 [TYPE_KIND_LONG]   = CAST_DOUBLE_TO_LONG,
                 [TYPE_KIND_ULONG]  = CAST_DOUBLE_TO_ULONG,
                 [TYPE_KIND_FLOAT]  = CAST_DOUBLE_TO_FLOAT,
-                [TYPE_KIND_DOUBLE] = CAST_INVALID, // No-op
+                [TYPE_KIND_DOUBLE] = CAST_SAME_TYPE,
             },
 };
 
@@ -411,24 +436,28 @@ bool sema_analyse_call_expression(SemaContext* sema_context, Expression* express
 		return false;
 	}
 
-	for (uint64 i = 0; i < vector_get_length(expression->call.arguments); ++i)
+	if (expression->call.arguments != nullptr)
 	{
-		Expression* argument = expression->call.arguments[i];
-
-		if (!sema_analyse_expression(sema_context, argument))
-			return false;
-
-		Type* parameter_type = function_declaration->function.signature.parameters[i]->variable.type;
-		Type* argument_type  = argument->type;
-
-		if (parameter_type != argument_type)
+		for (uint64 i = 0; i < vector_get_length(expression->call.arguments); ++i)
 		{
-			sema_report_error(&argument->source_span,
-			                  "Argument %d of function '%s' of type '%s' cannot be passed as an argument of type '%s'.",
-			                  i + 1, function_declaration->function.signature.name,
-			                  type_kind_to_string(parameter_type->kind), type_kind_to_string(argument_type->kind));
+			Expression* argument = expression->call.arguments[i];
 
-			return false;
+			if (!sema_analyse_expression(sema_context, argument))
+				return false;
+
+			Type* parameter_type = function_declaration->function.signature.parameters[i]->variable.type;
+			Type* argument_type  = argument->type;
+
+			if (parameter_type != argument_type)
+			{
+				sema_report_error(
+				    &argument->source_span,
+				    "Argument %d of function '%s' of type '%s' cannot be passed as an argument of type '%s'.", i + 1,
+				    function_declaration->function.signature.name, type_kind_to_string(parameter_type->kind),
+				    type_kind_to_string(argument_type->kind));
+
+				return false;
+			}
 		}
 	}
 
@@ -473,6 +502,14 @@ bool sema_analyse_expression_internal(SemaContext* sema_context, Expression* exp
 			                  type_kind_to_string(expression->cast.expression->type->kind),
 			                  type_kind_to_string(expression->cast.cast_to->kind));
 			return false;
+		}
+
+		if (expression->cast.cast_kind == CAST_SAME_TYPE)
+		{
+			sema_report_warning(&expression->source_span,
+			                    "Casting from type '%s' to type '%s' is redundant. Please check the cast operation.",
+			                    type_kind_to_string(expression->cast.expression->type->kind),
+			                    type_kind_to_string(expression->cast.cast_to->kind));
 		}
 
 		break;
