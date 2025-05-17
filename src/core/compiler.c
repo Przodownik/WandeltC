@@ -34,10 +34,7 @@ void compiler_lex(Compiler* compiler)
 			if (compiler->build_options.lexer_debug)
 			{
 				TRACE("<Token id=\"%i\" type=\"%s\", value=\"%s\" />\n", lexer.token_count,
-				      token_type_to_enum_stringified(token.type),
-				      (token.type == TOKEN_IDENTIFIER || token.type == TOKEN_NUMBER || token.type == TOKEN_STRING)
-				          ? token.lexeme
-				          : token_type_to_string(token.type));
+				      token_type_to_enum_stringified(token.type), token.lexeme);
 			}
 		}
 

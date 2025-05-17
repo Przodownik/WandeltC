@@ -49,6 +49,13 @@ static_assert(sizeof(bool32) == 4, "bool32 is not 4 bytes");
 	#error "Debug break not supported on this platform"
 #endif
 
+#if defined(WDT_COMPILER_MSVC)
+	#define NORETURN __declspec(noreturn)
+	#define INLINE   static __forceinline
+#else
+	#error "NORETURN & INLINE not supported on this compiler"
+#endif
+
 #define VA_OPTIONAL_EXPANSION(...) __VA_OPT__(, )##__VA_ARGS__
 
 #define ANSI_COLOR_BLACK      "\x1b[30m"
@@ -93,24 +100,46 @@ static void __vprint(FILE* out, const char* fmt, ...)
 #define ERROR(fmt, ...)  fprintf(stderr, ANSI_COLOR_RED fmt ANSI_COLOR_RESET __VA_OPT__(, )##__VA_ARGS__)
 #define VERROR(fmt, ...) __vprint(stderr, fmt, __VA_ARGS__)
 
-#define ASSERT(condition, fmt, ...)                 \
-	do                                              \
-	{                                               \
-		if (!(condition))                           \
-		{                                           \
-			ERROR(fmt __VA_OPT__(, )##__VA_ARGS__); \
-			DEBUG_BREAK();                          \
-			exit(-1);                               \
-		}                                           \
+// static jmp_buf on_error_jump;
+
+NORETURN static void exit_compiler(int exit_value)
+{
+	exit(exit_value);
+	// longjmp(on_error_jump, exit_value);
+}
+
+#define FATAL_ERROR(fmt, ...)                                                                                     \
+	do                                                                                                            \
+	{                                                                                                             \
+		VERROR(ANSI_COLOR_RED                                                                                     \
+		       "The compiler encountered an unexpected error!\n"                                                  \
+		       "- Function: %s(...)\n"                                                                            \
+		       "- Source file: %s:%d\n\n"                                                                         \
+		       "Error: " fmt "\n\n"                                                                               \
+		       "Please consider filing an issue on GitHub, including the possibly erroneous "                     \
+		       "source code and this error message, to help to diagnose and fix the issue.\n\n" ANSI_COLOR_RESET, \
+		       __func__, __FILE__, __LINE__, ##__VA_ARGS__);                                                      \
+		exit_compiler(-1);                                                                                        \
 	} while (0)
 
-#define VERIFY(condition, fmt, ...)                 \
-	do                                              \
-	{                                               \
-		if (!(condition))                           \
-		{                                           \
-			ERROR(fmt __VA_OPT__(, )##__VA_ARGS__); \
-			DEBUG_BREAK();                          \
-			exit(-1);                               \
-		}                                           \
+#define UNREACHABLE     FATAL_ERROR("Unreachable code reached")
+#define NOT_IMPLEMENTED FATAL_ERROR("Not implemented yet")
+#define NOT_SUPPORTED   FATAL_ERROR("Not supported functionality")
+
+#define ASSERT(condition, fmt, ...)                       \
+	do                                                    \
+	{                                                     \
+		if (!(condition))                                 \
+		{                                                 \
+			FATAL_ERROR(fmt __VA_OPT__(, )##__VA_ARGS__); \
+		}                                                 \
+	} while (0)
+
+#define VERIFY(condition, fmt, ...)                       \
+	do                                                    \
+	{                                                     \
+		if (!(condition))                                 \
+		{                                                 \
+			FATAL_ERROR(fmt __VA_OPT__(, )##__VA_ARGS__); \
+		}                                                 \
 	} while (0)

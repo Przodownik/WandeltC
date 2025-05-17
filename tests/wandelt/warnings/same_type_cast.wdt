@@ -1,0 +1,18 @@
+fn int main()
+{
+    int t = int(2);
+
+    return t;
+}
+
+<*
+#expectfail
+1| fn int main()
+2| {
+3|     int t = int(2);
+               ^^^^^^
+4|
+5|     return t;
+Warning in file (wandelt\warnings\same_type_cast.wdt) in row 3 in column 13
+Casting from type 'int' to type 'int' is redundant. Please check the cast operation.
+*>

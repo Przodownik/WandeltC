@@ -1,0 +1,19 @@
+fn int test(int a, int b, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p, int r)
+{
+    return 1;
+}
+
+fn int main()
+{
+    return 0;
+}
+
+<*
+#expectfail
+1| fn int test(int a, int b, int c, int d, int e, int f, int g, int h, int i, int j, int k, int l, int m, int n, int o, int p, int r)
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2| {
+3|     return 1;
+Error in file (wandelt\errors\fn_decl_too_many_params.wdt) in row 1 in column 1
+Function 'test' has too many parameters (17). Maximum is 16.
+*>

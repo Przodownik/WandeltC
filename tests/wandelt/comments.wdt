@@ -1,21 +1,21 @@
-/*
-    fn int32 fibonacci(int32 n)
+<*
+    fn int fibonacci(int n)
     {
         if (n <= 1)
             return n;
 
         return fibonacci(n - 1) + fibonacci(n - 2);
     }
-*/
-fn int32 main() // just testing comments
+*>
+fn int main() // just testing comments
 {
-/*
-    return 21;*/
+<*
+    return 21;*>
     return 33;
     // test
 }
 
-/*
+<*
 #expect
 ; ModuleID = 'module:core'
 source_filename = "main.wdt"
@@ -26,4 +26,4 @@ define i32 @main() {
 entry:
   ret i32 33
 }
-*/
+*>

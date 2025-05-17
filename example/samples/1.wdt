@@ -1,9 +1,9 @@
-
 fn int putchar(int) @foreign;
+fn int getchar() @foreign;
 
 fn int main()
 {
-    char character = 'a';
+    char character = char(getchar());
 
     while (character <= 'z')
     {

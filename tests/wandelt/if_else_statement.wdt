@@ -1,0 +1,66 @@
+fn int main()
+{
+    int x = 12;
+
+    if (x > 15)
+    {
+        x = 12;
+    }
+    else
+    {
+        x = 28;
+
+        if (x >= 20)
+        {
+            x = 30;
+        }
+        else
+        {
+            x = 40;
+        }
+    }
+
+    return x;
+}
+
+<*
+#expect
+; ModuleID = 'module:core'
+source_filename = "main.wdt"
+target datalayout = ""
+target triple = ""
+
+define i32 @main() {
+entry:
+  %x = alloca i32, align 4
+  store i32 12, ptr %x, align 4
+  %x1 = load i32, ptr %x, align 4
+  %greater = icmp sgt i32 %x1, 15
+  br i1 %greater, label %if.then, label %if.else
+
+if.then:                                          ; preds = %entry
+  store i32 12, ptr %x, align 4
+  br label %if.merge
+
+if.else:                                          ; preds = %entry
+  store i32 28, ptr %x, align 4
+  %x2 = load i32, ptr %x, align 4
+  %greater.or.equal = icmp sge i32 %x2, 20
+  br i1 %greater.or.equal, label %if.then3, label %if.else4
+
+if.merge:                                         ; preds = %if.merge5, %if.then
+  %x6 = load i32, ptr %x, align 4
+  ret i32 %x6
+
+if.then3:                                         ; preds = %if.else
+  store i32 30, ptr %x, align 4
+  br label %if.merge5
+
+if.else4:                                         ; preds = %if.else
+  store i32 40, ptr %x, align 4
+  br label %if.merge5
+
+if.merge5:                                        ; preds = %if.else4, %if.then3
+  br label %if.merge
+}
+*>

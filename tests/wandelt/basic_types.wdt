@@ -1,0 +1,69 @@
+fn int main()
+{
+    bool b = true;
+
+    char c = 'a';
+    uchar c1 = uchar('a');
+
+    short s = short(12);
+    ushort s1 = ushort(12);
+
+    int i = 12;
+    uint i1 = uint(12);
+
+    long l = long(12);
+    ulong l1 = ulong(12);
+
+    float x1 = 12f;
+    float x2 = 12.f;
+    float x3 = 12.0f;
+
+    double x1 = 12d;
+    double x2 = 12.d;
+    double x3 = 12.0d;
+
+    return 0;
+}
+
+<*
+#expect
+; ModuleID = 'module:core'
+source_filename = "main.wdt"
+target datalayout = ""
+target triple = ""
+
+define i32 @main() {
+entry:
+  %b = alloca i1, align 1
+  store i1 true, ptr %b, align 1
+  %c = alloca i8, align 1
+  store i8 97, ptr %c, align 1
+  %c1 = alloca i8, align 1
+  store i8 97, ptr %c1, align 1
+  %s = alloca i16, align 2
+  store i16 12, ptr %s, align 2
+  %s1 = alloca i16, align 2
+  store i16 12, ptr %s1, align 2
+  %i = alloca i32, align 4
+  store i32 12, ptr %i, align 4
+  %i1 = alloca i32, align 4
+  store i32 12, ptr %i1, align 4
+  %l = alloca i64, align 8
+  store i64 12, ptr %l, align 8
+  %l1 = alloca i64, align 8
+  store i64 12, ptr %l1, align 8
+  %x1 = alloca float, align 4
+  store float 1.200000e+01, ptr %x1, align 4
+  %x2 = alloca float, align 4
+  store float 1.200000e+01, ptr %x2, align 4
+  %x3 = alloca float, align 4
+  store float 1.200000e+01, ptr %x3, align 4
+  %x11 = alloca double, align 8
+  store double 1.200000e+01, ptr %x11, align 8
+  %x22 = alloca double, align 8
+  store double 1.200000e+01, ptr %x22, align 8
+  %x33 = alloca double, align 8
+  store double 1.200000e+01, ptr %x33, align 8
+  ret i32 0
+}
+*>

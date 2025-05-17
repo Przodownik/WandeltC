@@ -15,13 +15,13 @@ TEST_DIR = "wandelt"
 OUTPUT_LL_PATH = "output.ll"
 
 def extract_expected_ir(content):
-    match = re.search(r"/\*\s*#expect(.*?)\*/", content, re.DOTALL)
+    match = re.search(r"<\*\s*#expect(.*?)\*>", content, re.DOTALL)
     if match:
         return match.group(1).strip()
     return None
 
 def extract_expected_fail(content):
-    match = re.search(r"/\*\s*#expectfail(.*?)\*/", content, re.DOTALL)
+    match = re.search(r"<\*\s*#expectfail(.*?)\*>", content, re.DOTALL)
     if match:
         return match.group(1).strip()
     return None
@@ -79,7 +79,7 @@ def run_test(index, total, file_path):
             expected_clean = normalize_stderr(expected_fail)
 
             if expected_clean == stderr_clean:
-                print(f"{Fore.GREEN}[PASS]{Style.RESET_ALL} {file_path} (expected failure matched) "
+                print(f"{Fore.GREEN}[PASS]{Style.RESET_ALL} {file_path} "
                       f"{Style.DIM}({elapsed_ms:.1f} ms){Style.RESET_ALL}")
                 return "pass"
             else:

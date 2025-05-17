@@ -1,0 +1,23 @@
+fn int main()
+{
+    int x = 10;
+
+    if (x)
+    {
+        x = x - 1;
+    }
+
+    return x;
+}
+
+<*
+#expectfail
+3|     int x = 10;
+4|
+5|     if (x)
+           ^
+6|     {
+7|         x = x - 1;
+Error in file (wandelt\errors\if_statement_not_bool_expr.wdt) in row 5 in column 9
+Condition of 'if' statement must be of type 'bool', but it is of type 'int'.
+*>

@@ -2,7 +2,18 @@
 
 #include "vendor/cJSON/cJSON.h"
 
-static Type int32_type = {.kind = TYPE_KIND_INT_32};
+static Type void_type   = {.kind = TYPE_KIND_VOID};
+static Type bool_type   = {.kind = TYPE_KIND_BOOL};
+static Type char_type   = {.kind = TYPE_KIND_CHAR};
+static Type uchar_type  = {.kind = TYPE_KIND_UCHAR};
+static Type short_type  = {.kind = TYPE_KIND_SHORT};
+static Type ushort_type = {.kind = TYPE_KIND_USHORT};
+static Type int_type    = {.kind = TYPE_KIND_INT};
+static Type uint_type   = {.kind = TYPE_KIND_UINT};
+static Type long_type   = {.kind = TYPE_KIND_LONG};
+static Type ulong_type  = {.kind = TYPE_KIND_ULONG};
+static Type float_type  = {.kind = TYPE_KIND_FLOAT};
+static Type double_type = {.kind = TYPE_KIND_DOUBLE};
 
 void compiler_internal_initialize(void)
 {
@@ -12,14 +23,44 @@ void compiler_internal_initialize(void)
 	arena_allocator_create(&expression_allocator, "EXPRESSION allocator", MB(1));
 
 	symbol_table = hash_map_create(sizeof(TokenType), TOKEN_KEYWORD_COUNT);
+
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_FUNCTION_KEYWORD), TOKEN_FUNCTION_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_RETURN_KEYWORD), TOKEN_RETURN_KEYWORD);
-	hash_map_set(&symbol_table, token_type_to_string(TOKEN_INT32_KEYWORD), TOKEN_INT32_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_TRUE_KEYWORD), TOKEN_TRUE_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_FALSE_KEYWORD), TOKEN_FALSE_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_PUBLIC_KEYWORD), TOKEN_PUBLIC_KEYWORD);
 	hash_map_set(&symbol_table, token_type_to_string(TOKEN_PRIVATE_KEYWORD), TOKEN_PRIVATE_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_IF_KEYWORD), TOKEN_IF_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_ELSE_KEYWORD), TOKEN_ELSE_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_WHILE_KEYWORD), TOKEN_WHILE_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_FOREIGN_KEYWORD), TOKEN_FOREIGN_KEYWORD);
+
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_VOID_KEYWORD), TOKEN_VOID_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_BOOL_KEYWORD), TOKEN_BOOL_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_CHAR_KEYWORD), TOKEN_CHAR_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_UCHAR_KEYWORD), TOKEN_UCHAR_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_SHORT_KEYWORD), TOKEN_SHORT_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_USHORT_KEYWORD), TOKEN_USHORT_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_INT_KEYWORD), TOKEN_INT_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_UINT_KEYWORD), TOKEN_UINT_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_LONG_KEYWORD), TOKEN_LONG_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_ULONG_KEYWORD), TOKEN_ULONG_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_FLOAT_KEYWORD), TOKEN_FLOAT_KEYWORD);
+	hash_map_set(&symbol_table, token_type_to_string(TOKEN_DOUBLE_KEYWORD), TOKEN_DOUBLE_KEYWORD);
 
 	type_table = hash_map_create(sizeof(Type*), TYPE_KIND_COUNT);
-	hash_map_set(&type_table, "int32", &int32_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_VOID_KEYWORD), &void_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_BOOL_KEYWORD), &bool_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_CHAR_KEYWORD), &char_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_UCHAR_KEYWORD), &uchar_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_SHORT_KEYWORD), &short_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_USHORT_KEYWORD), &ushort_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_INT_KEYWORD), &int_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_UINT_KEYWORD), &uint_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_LONG_KEYWORD), &long_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_ULONG_KEYWORD), &ulong_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_FLOAT_KEYWORD), &float_type);
+	hash_map_set(&type_table, token_type_to_string(TOKEN_DOUBLE_KEYWORD), &double_type);
 
 	global_context.functions_declarations = vector_create(10, sizeof(Declaration*));
 }
@@ -42,6 +83,57 @@ void compiler_internal_shutdown(void)
 	hash_map_destroy(&type_table);
 
 	vector_destroy(global_context.functions_declarations);
+}
+
+const char* type_kind_to_string(TypeKind kind)
+{
+	switch (kind)
+	{
+	case TYPE_KIND_FUNCTION:
+		return "function";
+
+	case TYPE_KIND_VOID:
+		return "void";
+	case TYPE_KIND_BOOL:
+		return "bool";
+	case TYPE_KIND_CHAR:
+		return "char";
+	case TYPE_KIND_UCHAR:
+		return "uchar";
+	case TYPE_KIND_SHORT:
+		return "short";
+	case TYPE_KIND_USHORT:
+		return "ushort";
+	case TYPE_KIND_INT:
+		return "int";
+	case TYPE_KIND_UINT:
+		return "uint";
+	case TYPE_KIND_LONG:
+		return "long";
+	case TYPE_KIND_ULONG:
+		return "ulong";
+	case TYPE_KIND_FLOAT:
+		return "float";
+	case TYPE_KIND_DOUBLE:
+		return "double";
+
+	default:
+		return "unknown";
+	}
+}
+
+bool has_attribute(Attribute* attributes, AttributeKind kind)
+{
+	if (attributes == nullptr)
+		return false;
+
+	for (uint64 i = 0; i < vector_get_length(attributes); ++i)
+	{
+		if (attributes[i].kind == kind)
+			return true;
+	}
+
+	return false;
 }
 
 const char* binary_operator_to_string(BinaryOperator op)
@@ -110,9 +202,9 @@ void emit_expression_json(Expression* expr, cJSON* parent)
 	cJSON* obj = cJSON_CreateObject();
 	switch (expr->kind)
 	{
-	case EXPRESSION_LITERAL:
+	case EXPRESSION_CONSTANT:
 		cJSON_AddStringToObject(obj, "kind", "literal");
-		cJSON_AddNumberToObject(obj, "value", expr->literal.int_value);
+		cJSON_AddNumberToObject(obj, "value", (double)expr->constant.int_value);
 		break;
 
 	case EXPRESSION_GROUP:
@@ -158,7 +250,7 @@ void emit_statement_json(Statement* stmt, cJSON* array)
 
 	cJSON* obj = cJSON_CreateObject();
 
-	switch (stmt->type)
+	switch (stmt->kind)
 	{
 	case STATEMENT_RETURN:
 		cJSON_AddStringToObject(obj, "type", "return");
@@ -188,6 +280,23 @@ void emit_statement_json(Statement* stmt, cJSON* array)
 	case STATEMENT_EXPRESSION:
 		emit_expression_json(stmt->expression.expression, obj);
 		break;
+
+	case STATEMENT_IF: {
+		cJSON_AddStringToObject(obj, "type", "if");
+		cJSON* condition = cJSON_CreateObject();
+		emit_expression_json(stmt->if_.condition, condition);
+		cJSON_AddItemToObject(obj, "condition", condition);
+		cJSON* then_branch = cJSON_CreateObject();
+		emit_statement_json(stmt->if_.then_branch, then_branch);
+		cJSON_AddItemToObject(obj, "then_branch", then_branch);
+		if (stmt->if_.else_branch)
+		{
+			cJSON* else_branch = cJSON_CreateObject();
+			emit_statement_json(stmt->if_.else_branch, else_branch);
+			cJSON_AddItemToObject(obj, "else_branch", else_branch);
+		}
+		break;
+	}
 
 	default:
 		cJSON_AddStringToObject(obj, "type", "unknown");

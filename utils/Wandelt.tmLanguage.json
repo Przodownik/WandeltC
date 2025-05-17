@@ -1,0 +1,193 @@
+{
+    "name": "Wandelt",
+    "scopeName": "source.wandelt",
+    "fileTypes": [
+        ".wdt"
+    ],
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#types"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#attributes"
+        },
+        {
+            "include": "#bracket_attributes"
+        },
+        {
+            "include": "#number_literals"
+        },
+        {
+            "include": "#char_literals"
+        },
+        {
+            "include": "#string_literals"
+        },
+        {
+            "include": "#function_call"
+        },
+        {
+            "include": "#identifiers"
+        },
+        {
+            "include": "#braces"
+        },
+        {
+            "include": "#brackets"
+        },
+        {
+            "include": "#parentheses"
+        },
+        {
+            "include": "#semicolon"
+        },
+        {
+            "include": "#comma"
+        },
+        {
+            "include": "#operators"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "begin": "//",
+                    "end": "$",
+                    "name": "comment.line.double-slash.wandelt"
+                },
+                {
+                    "begin": "<\\*",
+                    "end": "\\*>",
+                    "name": "comment.block.wandelt"
+                }
+            ]
+        },
+        "types": {
+            "patterns": [
+                {
+                    "match": "\\b(void|bool|char|uchar|short|ushort|int|uint|long|ulong|float|double)\\b",
+                    "name": "storage.type"
+                }
+            ]
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "match": "\\b(fn|return|true|false|if|else|while|for|foreign|package)\\b",
+                    "name": "keyword.control"
+                }
+            ]
+        },
+        "attributes": {
+            "patterns": [
+                {
+                    "match": "@[a-zA-Z_][a-zA-Z0-9_]*",
+                    "name": "entity.name.tag"
+                }
+            ]
+        },
+        "bracket_attributes": {
+            "patterns": [
+                {
+                    "match": "#\\[[a-zA-Z_][a-zA-Z0-9_]*\\]",
+                    "name": "entity.name.tag"
+                }
+            ]
+        },
+        "number_literals": {
+            "patterns": [
+                {
+                    "match": "\\b(\\d*\\.\\d+[fd]?|\\d+[fd]?)\\b",
+                    "name": "constant.numeric"
+                }
+            ]
+        },
+        "char_literals": {
+            "patterns": [
+                {
+                    "match": "'(\\\\.|[^'\\n])*'",
+                    "name": "string.quoted.single"
+                }
+            ]
+        },
+        "string_literals": {
+            "patterns": [
+                {
+                    "match": "\"(\\\\.|[^\"\\n])*\"",
+                    "name": "string.quoted.double"
+                }
+            ]
+        },
+        "identifiers": {
+            "patterns": [
+                {
+                    "match": "[a-zA-Z_][a-zA-Z0-9_]*",
+                    "name": "variable"
+                }
+            ]
+        },
+        "braces": {
+            "patterns": [
+                {
+                    "match": "[{}]",
+                    "name": "keyword.operator"
+                }
+            ]
+        },
+        "brackets": {
+            "patterns": [
+                {
+                    "match": "[\\[\\]]",
+                    "name": "keyword.operator"
+                }
+            ]
+        },
+        "operators": {
+            "patterns": [
+                {
+                    "match": "(==|!=|<=|>=|&&|\\|\\||\\+\\+|\\-\\-|[-+*/%=<>!&|\\^])",
+                    "name": "keyword.operator"
+                }
+            ]
+        },
+        "function_call": {
+            "patterns": [
+                {
+                    "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b(?=\\s*\\()",
+                    "name": "entity.name.function"
+                }
+            ]
+        },
+        "parentheses": {
+            "patterns": [
+                {
+                    "match": "[()]",
+                    "name": "keyword.operator"
+                }
+            ]
+        },
+        "semicolon": {
+            "patterns": [
+                {
+                    "match": ";",
+                    "name": "keyword.operator"
+                }
+            ]
+        },
+        "comma": {
+            "patterns": [
+                {
+                    "match": ",",
+                    "name": "keyword.operator"
+                }
+            ]
+        }
+    }
+}

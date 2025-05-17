@@ -1,0 +1,23 @@
+fn int main()
+{
+    int x = 10;
+
+    while (x)
+    {
+        x = x - 1;
+    }
+
+    return x;
+}
+
+<*
+#expectfail
+3|     int x = 10;
+4|
+5|     while (x)
+              ^
+6|     {
+7|         x = x - 1;
+Error in file (wandelt\errors\while_statement_not_bool_expr.wdt) in row 5 in column 12
+Condition of 'while' statement must be of type 'bool', but it is of type 'int'.
+*>

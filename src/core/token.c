@@ -8,12 +8,48 @@ const char* token_type_to_string(TokenType type)
 		return "fn";
 	case TOKEN_RETURN_KEYWORD:
 		return "return";
-	case TOKEN_INT32_KEYWORD:
-		return "int32";
+	case TOKEN_TRUE_KEYWORD:
+		return "true";
+	case TOKEN_FALSE_KEYWORD:
+		return "false";
 	case TOKEN_PUBLIC_KEYWORD:
 		return "public";
 	case TOKEN_PRIVATE_KEYWORD:
 		return "private";
+	case TOKEN_IF_KEYWORD:
+		return "if";
+	case TOKEN_ELSE_KEYWORD:
+		return "else";
+	case TOKEN_WHILE_KEYWORD:
+		return "while";
+	case TOKEN_FOREIGN_KEYWORD:
+		return "foreign";
+
+	case TOKEN_VOID_KEYWORD:
+		return "void";
+	case TOKEN_BOOL_KEYWORD:
+		return "bool";
+	case TOKEN_CHAR_KEYWORD:
+		return "char";
+	case TOKEN_UCHAR_KEYWORD:
+		return "uchar";
+	case TOKEN_SHORT_KEYWORD:
+		return "short";
+	case TOKEN_USHORT_KEYWORD:
+		return "ushort";
+	case TOKEN_INT_KEYWORD:
+		return "int";
+	case TOKEN_UINT_KEYWORD:
+		return "uint";
+	case TOKEN_LONG_KEYWORD:
+		return "long";
+	case TOKEN_ULONG_KEYWORD:
+		return "ulong";
+	case TOKEN_FLOAT_KEYWORD:
+		return "float";
+	case TOKEN_DOUBLE_KEYWORD:
+		return "double";
+
 	case TOKEN_OPEN_PAREN:
 		return "(";
 	case TOKEN_CLOSE_PAREN:
@@ -70,10 +106,17 @@ const char* token_type_to_string(TokenType type)
 		return "->";
 	case TOKEN_COLON_COLON:
 		return "::";
+	case TOKEN_AT:
+		return "@";
+
 	case TOKEN_IDENTIFIER:
 		return "identifier";
-	case TOKEN_NUMBER:
-		return "number";
+	case TOKEN_INTEGER:
+		return "integer";
+	case TOKEN_FLOAT:
+		return "float";
+	case TOKEN_DOUBLE:
+		return "double";
 	case TOKEN_STRING:
 		return "string";
 	case TOKEN_CHARACTER:
@@ -84,9 +127,10 @@ const char* token_type_to_string(TokenType type)
 		return "EOF";
 	case TOKEN_KEYWORD_COUNT:
 	default:
-		ASSERT(false, "Invalid token! %i", type);
 		break;
 	}
+
+	UNREACHABLE;
 }
 
 const char* token_type_to_enum_stringified(TokenType type)
@@ -97,12 +141,48 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_FUNCTION_KEYWORD";
 	case TOKEN_RETURN_KEYWORD:
 		return "TOKEN_RETURN_KEYWORD";
-	case TOKEN_INT32_KEYWORD:
-		return "TOKEN_INT32_KEYWORD";
+	case TOKEN_TRUE_KEYWORD:
+		return "TOKEN_TRUE_KEYWORD";
+	case TOKEN_FALSE_KEYWORD:
+		return "TOKEN_FALSE_KEYWORD";
 	case TOKEN_PUBLIC_KEYWORD:
 		return "TOKEN_PUBLIC_KEYWORD";
 	case TOKEN_PRIVATE_KEYWORD:
 		return "TOKEN_PRIVATE_KEYWORD";
+	case TOKEN_IF_KEYWORD:
+		return "TOKEN_IF_KEYWORD";
+	case TOKEN_ELSE_KEYWORD:
+		return "TOKEN_ELSE_KEYWORD";
+	case TOKEN_WHILE_KEYWORD:
+		return "TOKEN_WHILE_KEYWORD";
+	case TOKEN_FOREIGN_KEYWORD:
+		return "TOKEN_FOREIGN_KEYWORD";
+
+	case TOKEN_VOID_KEYWORD:
+		return "TOKEN_VOID_KEYWORD";
+	case TOKEN_BOOL_KEYWORD:
+		return "TOKEN_BOOL_KEYWORD";
+	case TOKEN_CHAR_KEYWORD:
+		return "TOKEN_CHAR_KEYWORD";
+	case TOKEN_UCHAR_KEYWORD:
+		return "TOKEN_UCHAR_KEYWORD";
+	case TOKEN_SHORT_KEYWORD:
+		return "TOKEN_SHORT_KEYWORD";
+	case TOKEN_USHORT_KEYWORD:
+		return "TOKEN_USHORT_KEYWORD";
+	case TOKEN_INT_KEYWORD:
+		return "TOKEN_INT_KEYWORD";
+	case TOKEN_UINT_KEYWORD:
+		return "TOKEN_UINT_KEYWORD";
+	case TOKEN_LONG_KEYWORD:
+		return "TOKEN_LONG_KEYWORD";
+	case TOKEN_ULONG_KEYWORD:
+		return "TOKEN_ULONG_KEYWORD";
+	case TOKEN_FLOAT_KEYWORD:
+		return "TOKEN_FLOAT_KEYWORD";
+	case TOKEN_DOUBLE_KEYWORD:
+		return "TOKEN_DOUBLE_KEYWORD";
+
 	case TOKEN_OPEN_PAREN:
 		return "TOKEN_OPEN_PAREN";
 	case TOKEN_CLOSE_PAREN:
@@ -159,10 +239,17 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_ARROW";
 	case TOKEN_COLON_COLON:
 		return "TOKEN_COLON_COLON";
+	case TOKEN_AT:
+		return "TOKEN_AT";
+
 	case TOKEN_IDENTIFIER:
 		return "TOKEN_IDENTIFIER";
-	case TOKEN_NUMBER:
-		return "TOKEN_NUMBER";
+	case TOKEN_INTEGER:
+		return "TOKEN_INTEGER";
+	case TOKEN_FLOAT:
+		return "TOKEN_FLOAT";
+	case TOKEN_DOUBLE:
+		return "TOKEN_DOUBLE";
 	case TOKEN_STRING:
 		return "TOKEN_STRING";
 	case TOKEN_CHARACTER:
@@ -173,7 +260,13 @@ const char* token_type_to_enum_stringified(TokenType type)
 		return "TOKEN_EOF";
 	case TOKEN_KEYWORD_COUNT:
 	default:
-		ASSERT(false, "Invalid token! %i", type);
 		break;
 	}
+
+	UNREACHABLE;
+}
+
+bool is_token_type_a_type_token(TokenType type)
+{
+	return type > TOKEN_FOREIGN_KEYWORD && type < TOKEN_OPEN_PAREN;
 }

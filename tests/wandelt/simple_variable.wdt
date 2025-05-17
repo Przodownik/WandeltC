@@ -1,13 +1,13 @@
-fn int32 main()
+fn int main()
 {
-    int32 a = 2400;
+    int a = 2400;
 
     a = 400;
 
     return a;
 }
 
-/*
+<*
 #expect
 ; ModuleID = 'module:core'
 source_filename = "main.wdt"
@@ -22,4 +22,4 @@ entry:
   %a1 = load i32, ptr %a, align 4
   ret i32 %a1
 }
-*/
+*>

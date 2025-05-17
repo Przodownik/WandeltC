@@ -80,8 +80,7 @@ void diagnostics_print_at_location(SourceSpan* span, const char* message, Diagno
 	uint32 context           = 2;
 	uint32 display_start_row = span->row > context ? span->row - context : 1;
 	const char* content_end  = span->source_file->content + span->source_file->content_size;
-	uint32 display_end_row =
-	    end_row + context < span->source_file->total_rows ? end_row + context : span->source_file->total_rows;
+	uint32 display_end_row   = end_row + context;
 
 	// Prepare line number formatting
 	uint32 max_line_length = (uint32)floor(log10(display_end_row)) + 1;

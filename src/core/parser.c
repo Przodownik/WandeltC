@@ -2,6 +2,7 @@
 
 #include "core/token.h"
 #include "diagnostics.h"
+#include "utils/defines.h"
 
 extern ArenaAllocator declaration_allocator; // from compiler_internal.h
 extern ArenaAllocator statement_allocator;   // from compiler_internal.h
@@ -9,25 +10,14 @@ extern ArenaAllocator expression_allocator;  // from compiler_internal.h
 extern HashMap type_table;                   // from compiler_internal.h
 extern Context global_context;               // from compiler_internal.h
 
-#define YELLOW_HIGHLIGHT(text)   ANSI_COLOR_YELLOW text ANSI_COLOR_RED
-#define UNEXPECTED_TOKEN_MESSAGE "Unexpected token '" YELLOW_HIGHLIGHT("%s") "' found!"
+#define UNEXPECTED_TOKEN_MESSAGE "Unexpected token '" YHRT("%s") "' found!"
 #define OK_OR_RET_FALSE(x) \
 	if (!x)                \
 	return false
 
-#define TOKEN_BINARY_OPERATORS \
-	case TOKEN_STAR:           \
-	case TOKEN_SLASH:          \
-	case TOKEN_PLUS:           \
-	case TOKEN_MINUS
-
-#define TOKEN_TYPE_KINDS case TOKEN_INT32_KEYWORD
-
 static Declaration invalid_declaration = {.kind = DECLARATION_INVALID};
-static Statement invalid_statement     = {.type = DECLARATION_INVALID};
+static Statement invalid_statement     = {.kind = DECLARATION_INVALID};
 static Expression invalid_expression   = {.kind = EXPRESSION_INVALID};
-
-static Type int32_type = {.kind = TYPE_KIND_INT_32};
 
 Parser parser_create(Context* context, Lexer* lexer)
 {
@@ -51,19 +41,19 @@ void parser_advance(Parser* parser)
 		return;
 }
 
-inline Token parser_get_token(Parser* parser)
+inline Token parser_get_current_token(Parser* parser)
 {
 	return parser->lexer->current_token;
 }
 
 inline TokenType parser_get_token_type(Parser* parser)
 {
-	return parser->lexer->current_token.type;
+	return parser_get_current_token(parser).type;
 }
 
 Token parser_get_token_and_advance(Parser* parser)
 {
-	Token token = parser->lexer->current_token;
+	Token token = parser_get_current_token(parser);
 
 	parser_advance(parser);
 
@@ -72,14 +62,13 @@ Token parser_get_token_and_advance(Parser* parser)
 
 bool parser_expect(Parser* parser, TokenType expected_type)
 {
-	Token token = parser->lexer->current_token;
+	Token token = parser_get_current_token(parser);
 
 	if (token.type != expected_type)
 	{
-		parser_report_error(
-		    &token.source_span,
-		    "Unexpected token '" YELLOW_HIGHLIGHT("%s") "' found! Token '" YELLOW_HIGHLIGHT("%s") "' was expected!",
-		    token.lexeme, token_type_to_string(expected_type));
+		parser_report_error(&token.source_span,
+		                    "Unexpected token '" YHRT("%s") "' found! Token '" YHRT("%s") "' was expected!",
+		                    token.lexeme, token_type_to_string(expected_type));
 
 		return false;
 	}
@@ -134,6 +123,16 @@ void parser_report_error(SourceSpan* location, const char* message, ...)
 	va_end(list);
 }
 
+void parser_report_warning(SourceSpan* location, const char* message, ...)
+{
+	global_context.warning_count++;
+
+	va_list list;
+	va_start(list, message);
+	diagnostics_vwarning_along_span(location, message, list);
+	va_end(list);
+}
+
 int8 parser_get_token_precedence(TokenType type)
 {
 	switch (type)
@@ -168,7 +167,7 @@ bool parse_identifier(Parser* parser, const char** identifier)
 	if (parser->lexer->current_token.type != TOKEN_IDENTIFIER)
 	{
 		parser_report_error(&parser->lexer->current_token.source_span,
-		                    "Expected an identifier and received '" YELLOW_HIGHLIGHT("%s") "'",
+		                    "Expected an identifier and received '" YHRT("%s") "'",
 		                    parser->lexer->current_token.lexeme);
 		return false;
 	}
@@ -183,37 +182,104 @@ bool parse_identifier(Parser* parser, const char** identifier)
 // <type>
 bool parse_type(Parser* parser, Type** type)
 {
-	Type* mapped_type = (Type*)hash_map_get_value(&type_table, parser->lexer->current_token.lexeme);
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, parser->lexer->current_token.lexeme);
 	if (mapped_type == nullptr)
 	{
-		parser_report_error(
-		    &parser->lexer->current_token.source_span,
-		    "Expected a valid return type and received '" YELLOW_HIGHLIGHT(
-		        "%s") "'. Standard types include " YELLOW_HIGHLIGHT("void") ", " YELLOW_HIGHLIGHT("int32") ", etc.",
-		    parser->lexer->current_token.lexeme);
+		parser_report_error(&parser->lexer->current_token.source_span,
+		                    "Expected a valid return type and received '" YHRT("%s") "'. Standard types include " YHRT(
+		                        "void") ", " YHRT("int") ", etc.",
+		                    parser->lexer->current_token.lexeme);
 
 		return false;
 	}
 
-	*type = mapped_type;
+	*type = *mapped_type;
 
 	parser_advance(parser); // consume the type
 
 	return true;
 }
 
+Declaration* parse_function_parameter_declaration(Parser* parser)
+{
+	Token type_token = parser->lexer->current_token;
+
+	Declaration* declaration    = arena_allocator_allocate(&declaration_allocator, sizeof(Declaration));
+	declaration->kind           = DECLARATION_VARIABLE;
+	declaration->resolve_status = RESOLVE_STATUS_UNRESOLVED;
+
+	if (!parse_type(parser, &declaration->variable.type))
+		return &invalid_declaration;
+
+	if (parser_get_token_type(parser) == TOKEN_IDENTIFIER)
+	{
+		declaration->variable.name = parser->lexer->current_token.lexeme;
+
+		parser_advance(parser); // consume the identifier
+
+		if (parser_get_token_type(parser) == TOKEN_EQUAL)
+		{
+			parser_advance(parser); // consume the equal sign
+
+			declaration->variable.initializer = parse_expression(parser);
+
+			if (declaration->variable.initializer->kind == EXPRESSION_INVALID)
+				return &invalid_declaration;
+		}
+
+		declaration->source_span =
+		    extend_span_with_token(type_token.source_span, parser->lexer->previous_token.source_span);
+	}
+	else
+	{
+		declaration->source_span = type_token.source_span;
+	}
+
+	return declaration;
+}
+
 // for now empty (), TODO: (<type> <identifier>, ...)
-bool parse_parameters(Parser* parser, Declaration** parameters)
+bool parse_parameters(Parser* parser, Declaration*** parameters)
 {
 	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_OPEN_PAREN));
 
 	parser_advance(parser); // consume (
 
+	// empty parameters, just return
+	if (parser->lexer->current_token.type == TOKEN_CLOSE_PAREN)
+	{
+		parser_advance(parser); // consume )
+		return true;
+	}
+
+	*parameters = vector_create(3, sizeof(Declaration*));
+
+	while (parser->lexer->current_token.type != TOKEN_CLOSE_PAREN)
+	{
+		Declaration* param_decl = parse_function_parameter_declaration(parser);
+
+		if (param_decl->kind == DECLARATION_INVALID)
+			return false;
+
+		vector_push(*parameters, param_decl);
+
+		if (parser->lexer->current_token.type != TOKEN_CLOSE_PAREN && parser->lexer->current_token.type != TOKEN_COMMA)
+		{
+			parser_report_error(&parser->lexer->current_token.source_span,
+			                    "Expected a comma or a closing parenthesis, but received '" YHRT("%s") "'",
+			                    parser->lexer->current_token.lexeme);
+			return false;
+		}
+
+		if (parser->lexer->current_token.type == TOKEN_COMMA)
+		{
+			parser_advance(parser); // consume ,
+		}
+	}
+
 	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_CLOSE_PAREN));
 
 	parser_advance(parser); // consume )
-
-	(void)parameters; // todo
 
 	return true;
 }
@@ -225,34 +291,149 @@ bool parse_function_signature(Parser* parser, FunctionSignature* signature)
 
 	OK_OR_RET_FALSE(parse_type(parser, &signature->return_type));
 	OK_OR_RET_FALSE(parse_identifier(parser, &signature->name));
-	OK_OR_RET_FALSE(parse_parameters(parser, signature->parameters));
+	OK_OR_RET_FALSE(parse_parameters(parser, &signature->parameters));
 
-	Token close_paren_token = parser->lexer->previous_token;
+	if (parser_get_token_type(parser) == TOKEN_AT)
+	{
+		signature->attributes = vector_create(2, sizeof(Attribute));
+	}
 
-	signature->source_span = extend_span_with_token(function_token.source_span, close_paren_token.source_span);
+	while (parser_get_token_type(parser) == TOKEN_AT)
+	{
+		parser_advance(parser);
+
+		switch (parser_get_token_type(parser))
+		{
+		case TOKEN_FOREIGN_KEYWORD:
+			parser_advance(parser); // consume foreign
+
+			Attribute foreign_attribute = {.kind = ATTRIBUTE_FOREIGN};
+			vector_push(signature->attributes, foreign_attribute);
+
+			break;
+		default:
+			parser_report_error(&parser->lexer->current_token.source_span,
+			                    "Expected a valid function attribute, but received '" YHRT("%s") "'",
+			                    parser->lexer->current_token.lexeme);
+
+			return false;
+		}
+	}
+
+	signature->source_span =
+	    extend_span_with_token(function_token.source_span, parser->lexer->previous_token.source_span);
 
 	return true;
 }
 
-Expression* parse_literal_expression(Parser* parser)
+Expression* parse_integer_constant_expression(Parser* parser)
 {
-	if (parser->lexer->current_token.type != TOKEN_NUMBER)
-	{
-		parser_report_error(&parser->lexer->current_token.source_span,
-		                    "Expected a number and received '" YELLOW_HIGHLIGHT("%s") "'",
-		                    parser->lexer->current_token.lexeme);
-		return &invalid_expression;
-	}
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_INT_KEYWORD));
 
-	Expression* expression        = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
-	expression->kind              = EXPRESSION_LITERAL;
-	expression->literal.int_value = atoi(parser->lexer->current_token.lexeme);
-	expression->literal.type      = &int32_type; // TODO add type deduction
-	expression->source_span       = parser->lexer->current_token.source_span;
+	Expression* expression         = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind               = EXPRESSION_CONSTANT;
+	expression->constant.int_value = atoi(parser->lexer->current_token.lexeme);
+	expression->type               = *mapped_type;
+	expression->constant.type      = CONSTANT_TYPE_INT;
+	expression->resolve_status     = RESOLVE_STATUS_RESOLVED;
+	expression->source_span        = parser->lexer->current_token.source_span;
 
 	parser_advance(parser); // consume the number
 
 	return expression;
+}
+
+Expression* parse_float_constant_expression(Parser* parser)
+{
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_FLOAT_KEYWORD));
+
+	Expression* expression           = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind                 = EXPRESSION_CONSTANT;
+	expression->constant.float_value = (float)atof(parser->lexer->current_token.lexeme);
+	expression->type                 = *mapped_type;
+	expression->constant.type        = CONSTANT_TYPE_FLOAT;
+	expression->resolve_status       = RESOLVE_STATUS_RESOLVED;
+	expression->source_span          = parser->lexer->current_token.source_span;
+
+	parser_advance(parser); // consume the number
+
+	return expression;
+}
+
+Expression* parse_double_constant_expression(Parser* parser)
+{
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_DOUBLE_KEYWORD));
+
+	Expression* expression            = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind                  = EXPRESSION_CONSTANT;
+	expression->constant.double_value = atof(parser->lexer->current_token.lexeme);
+	expression->type                  = *mapped_type;
+	expression->constant.type         = CONSTANT_TYPE_DOUBLE;
+	expression->resolve_status        = RESOLVE_STATUS_RESOLVED;
+	expression->source_span           = parser->lexer->current_token.source_span;
+
+	parser_advance(parser); // consume the number
+
+	return expression;
+}
+
+Expression* parse_character_constant_expression(Parser* parser)
+{
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_CHAR_KEYWORD));
+
+	Expression* expression         = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind               = EXPRESSION_CONSTANT;
+	expression->constant.int_value = parser->lexer->current_token.lexeme[0];
+	expression->type               = *mapped_type;
+	expression->constant.type      = CONSTANT_TYPE_INT;
+	expression->resolve_status     = RESOLVE_STATUS_RESOLVED;
+	expression->source_span        = parser->lexer->current_token.source_span;
+
+	parser_advance(parser); // consume the character
+
+	return expression;
+}
+
+Expression* parse_boolean_constant_expression(Parser* parser)
+{
+	Type** mapped_type = (Type**)hash_map_get_value(&type_table, token_type_to_string(TOKEN_BOOL_KEYWORD));
+
+	Expression* expression          = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind                = EXPRESSION_CONSTANT;
+	expression->constant.bool_value = parser->lexer->current_token.type == TOKEN_TRUE_KEYWORD;
+	expression->type                = *mapped_type;
+	expression->constant.type       = CONSTANT_TYPE_BOOL;
+	expression->resolve_status      = RESOLVE_STATUS_RESOLVED;
+	expression->source_span         = parser->lexer->current_token.source_span;
+
+	parser_advance(parser); // consume the bool
+
+	return expression;
+}
+
+Expression* parse_constant_expression(Parser* parser)
+{
+	switch (parser->lexer->current_token.type)
+	{
+	case TOKEN_INTEGER:
+		return parse_integer_constant_expression(parser);
+	case TOKEN_FLOAT:
+		return parse_float_constant_expression(parser);
+	case TOKEN_DOUBLE:
+		return parse_double_constant_expression(parser);
+	case TOKEN_CHARACTER:
+		return parse_character_constant_expression(parser);
+	case TOKEN_STRING:
+		NOT_IMPLEMENTED;
+		break;
+	case TOKEN_TRUE_KEYWORD:
+	case TOKEN_FALSE_KEYWORD:
+		return parse_boolean_constant_expression(parser);
+	default:
+		break;
+	}
+
+	UNREACHABLE;
 }
 
 Expression* parse_grouped_expression(Parser* parser)
@@ -278,28 +459,135 @@ Expression* parse_grouped_expression(Parser* parser)
 	return expression;
 }
 
+Expression* parse_cast_expression(Parser* parser)
+{
+	Expression* expression     = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	expression->kind           = EXPRESSION_CAST;
+	expression->resolve_status = RESOLVE_STATUS_UNRESOLVED; // cast_kind must be resolved by sema
+
+	Token type_token = parser->lexer->current_token;
+
+	if (!parse_type(parser, &expression->cast.cast_to))
+		return &invalid_expression;
+
+	expression->type = expression->cast.cast_to;
+
+	if (!parser_expect(parser, TOKEN_OPEN_PAREN))
+		return &invalid_expression;
+
+	parser_advance(parser); // consume (
+
+	expression->cast.expression = parse_expression(parser);
+
+	if (expression->cast.expression->kind == EXPRESSION_INVALID)
+		return &invalid_expression;
+
+	if (!parser_expect(parser, TOKEN_CLOSE_PAREN))
+		return &invalid_expression;
+
+	Token close_paren_token = parser_get_token_and_advance(parser); // consume )
+
+	expression->source_span = extend_span_with_token(type_token.source_span, close_paren_token.source_span);
+
+	return expression;
+}
+
+bool parse_arguments(Parser* parser, Expression*** arguments)
+{
+	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_OPEN_PAREN));
+
+	parser_advance(parser); // consume (
+
+	// empty arguments, just return
+	if (parser_get_token_type(parser) == TOKEN_CLOSE_PAREN)
+	{
+		parser_advance(parser); // consume )
+		return true;
+	}
+
+	*arguments = vector_create(3, sizeof(Expression*));
+
+	while (parser_get_token_type(parser) != TOKEN_CLOSE_PAREN)
+	{
+		Expression* argument_expression = parse_expression(parser);
+		if (argument_expression->kind == EXPRESSION_INVALID)
+			return false;
+
+		if (parser_get_token_type(parser) != TOKEN_CLOSE_PAREN && parser_get_token_type(parser) != TOKEN_COMMA)
+		{
+			parser_report_error(&parser->lexer->current_token.source_span,
+			                    "Expected a comma or a closing parenthesis, but received '" YHRT("%s") "'",
+			                    parser->lexer->current_token.lexeme);
+			return false;
+		}
+
+		if (parser_get_token_type(parser) == TOKEN_COMMA)
+		{
+			parser_advance(parser); // consume ,
+		}
+
+		vector_push(*arguments, argument_expression);
+	}
+
+	OK_OR_RET_FALSE(parser_expect(parser, TOKEN_CLOSE_PAREN));
+
+	parser_advance(parser); // consume )
+
+	return true;
+}
+
+Expression* parse_identifier_expression(Parser* parser)
+{
+	Token identifier_token = parser_get_token_and_advance(parser); // consume identifier
+
+	Expression* ident_expression      = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+	ident_expression->kind            = EXPRESSION_IDENTIFIER;
+	ident_expression->identifier.name = identifier_token.lexeme;
+	ident_expression->source_span     = identifier_token.source_span;
+
+	// identifier call expression
+	if (parser_get_token_type(parser) == TOKEN_OPEN_PAREN)
+	{
+		Expression* expression  = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
+		expression->kind        = EXPRESSION_CALL;
+		expression->call.callee = ident_expression;
+
+		if (!parse_arguments(parser, &expression->call.arguments))
+			return &invalid_expression;
+
+		expression->source_span =
+		    extend_span_with_token(ident_expression->source_span, parser->lexer->previous_token.source_span);
+
+		return expression;
+	}
+
+	return ident_expression;
+}
+
 Expression* parse_primary_expression(Parser* parser)
 {
 	switch (parser->lexer->current_token.type)
 	{
-	case TOKEN_NUMBER:
-		return parse_literal_expression(parser);
+	case TOKEN_INTEGER:
+	case TOKEN_FLOAT:
+	case TOKEN_DOUBLE:
+	case TOKEN_CHARACTER:
+	case TOKEN_STRING:
+	case TOKEN_TRUE_KEYWORD:
+	case TOKEN_FALSE_KEYWORD:
+		return parse_constant_expression(parser);
 	case TOKEN_OPEN_PAREN:
 		return parse_grouped_expression(parser);
 	case TOKEN_IDENTIFIER:
-		Expression* expression      = arena_allocator_allocate(&expression_allocator, sizeof(Expression));
-		expression->kind            = EXPRESSION_IDENTIFIER;
-		expression->identifier.name = parser->lexer->current_token.lexeme;
-		expression->source_span     = parser->lexer->current_token.source_span;
-
-		parser_advance(parser); // consume the identifier
-
-		return expression;
+		return parse_identifier_expression(parser);
+	TOKEN_TYPE_KINDS:
+		return parse_cast_expression(parser);
+		break;
 	default:
-		parser_report_error(
-		    &parser->lexer->current_token.source_span,
-		    "Expected an " YELLOW_HIGHLIGHT("expression") ", but received a '" YELLOW_HIGHLIGHT("%s") "'",
-		    parser->lexer->current_token.lexeme);
+		parser_report_error(&parser->lexer->current_token.source_span,
+		                    "Expected an " YHRT("expression") ", but received a '" YHRT("%s") "'",
+		                    parser->lexer->current_token.lexeme);
+
 		return &invalid_expression;
 	}
 }
@@ -330,6 +618,8 @@ BinaryOperator token_type_to_binary_operator(TokenType type)
 		return BINARY_OPERATOR_GREATER_OR_EQUAL;
 	case TOKEN_EQUAL:
 		return BINARY_OPERATOR_ASSIGN;
+	case TOKEN_PERCENT:
+		return BINARY_OPERATOR_PERCENT;
 	default:
 		ASSERT(false, "Invalid token type for binary operator");
 		return BINARY_OPERATOR_INVALID;
@@ -393,7 +683,7 @@ Statement* parse_return_statement(Parser* parser)
 	Token return_token = parser_get_token_and_advance(parser); // consume return
 
 	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
-	statement->type      = STATEMENT_RETURN;
+	statement->kind      = STATEMENT_RETURN;
 
 	// if no expression, just return;
 	if (parser_get_token_type(parser) != TOKEN_SEMICOLON)
@@ -419,10 +709,11 @@ Statement* parse_variable_declaration_statement(Parser* parser)
 	Token type_token = parser->lexer->current_token;
 
 	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
-	statement->type      = STATEMENT_DECLARATION;
+	statement->kind      = STATEMENT_DECLARATION;
 
 	statement->declaration.declaration       = arena_allocator_allocate(&declaration_allocator, sizeof(Declaration));
 	statement->declaration.declaration->kind = DECLARATION_VARIABLE;
+	statement->declaration.declaration->resolve_status = RESOLVE_STATUS_UNRESOLVED;
 
 	if (!parse_type(parser, &statement->declaration.declaration->variable.type))
 		return &invalid_statement;
@@ -434,12 +725,22 @@ Statement* parse_variable_declaration_statement(Parser* parser)
 
 	parser_advance(parser); // consume the identifier
 
-	if (!parser_expect(parser, TOKEN_EQUAL))
+	if (parser_get_token_type(parser) != TOKEN_EQUAL)
+	{
+		parser_report_error(&parser->lexer->current_token.source_span,
+		                    "Variables must be initialized, when declared! Expected an assignment operator '=' after "
+		                    "the variable name '" YHRT("%s") "'.",
+		                    statement->declaration.declaration->variable.name);
+
 		return &invalid_statement;
+	}
 
 	parser_advance(parser); // consume the equal sign
 
 	statement->declaration.declaration->variable.initializer = parse_expression(parser);
+
+	if (statement->declaration.declaration->variable.initializer->kind == EXPRESSION_INVALID)
+		return &invalid_statement;
 
 	if (!parser_expect(parser, TOKEN_SEMICOLON))
 		return &invalid_statement;
@@ -456,8 +757,34 @@ Statement* parse_expression_statement(Parser* parser)
 	Token type_token = parser->lexer->current_token;
 
 	Statement* statement             = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
-	statement->type                  = STATEMENT_EXPRESSION;
+	statement->kind                  = STATEMENT_EXPRESSION;
 	statement->expression.expression = parse_expression(parser);
+
+	if (statement->expression.expression->kind == EXPRESSION_INVALID)
+		return &invalid_statement;
+
+	bool is_valid_identifier_assignment =
+	    statement->expression.expression->kind == EXPRESSION_BINARY &&
+	    statement->expression.expression->binary.left->kind == EXPRESSION_IDENTIFIER &&
+	    statement->expression.expression->binary.operator== BINARY_OPERATOR_ASSIGN;
+
+	bool is_valid_function_call = statement->expression.expression->kind == EXPRESSION_CALL &&
+	                              statement->expression.expression->call.callee->kind == EXPRESSION_IDENTIFIER;
+
+	bool is_valid = is_valid_identifier_assignment || is_valid_function_call;
+
+	if (!is_valid)
+	{
+		SourceSpan span = extend_span_with_token(type_token.source_span, parser->lexer->current_token.source_span);
+
+		parser_report_error(
+		    &span,
+		    "Expression statement with expression '" YHRT("%s") "' is invalid here! Did you mean to "
+		                                                        "assign a value to a variable or call a function?",
+		    parser->lexer->current_token.lexeme);
+
+		return &invalid_statement;
+	}
 
 	if (!parser_expect(parser, TOKEN_SEMICOLON))
 		return &invalid_statement;
@@ -465,6 +792,84 @@ Statement* parse_expression_statement(Parser* parser)
 	Token semicolon_token = parser_get_token_and_advance(parser); // consume ;
 
 	statement->source_span = extend_span_with_token(type_token.source_span, semicolon_token.source_span);
+
+	return statement;
+}
+
+Statement* parse_if_statement(Parser* parser)
+{
+	Token if_token = parser_get_token_and_advance(parser); // consume if
+
+	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
+	statement->kind      = STATEMENT_IF;
+
+	if (!parser_expect(parser, TOKEN_OPEN_PAREN))
+		return &invalid_statement;
+
+	parser_advance(parser); // consume (
+
+	statement->if_.condition = parse_expression(parser);
+
+	if (statement->if_.condition->kind == EXPRESSION_INVALID)
+		return &invalid_statement;
+
+	if (!parser_expect(parser, TOKEN_CLOSE_PAREN))
+		return &invalid_statement;
+
+	parser_advance(parser); // consume )
+
+	statement->if_.then_branch = parse_statement(parser);
+
+	if (statement->if_.then_branch->kind == STATEMENT_INVALID)
+		return &invalid_statement;
+
+	if (parser->lexer->current_token.type == TOKEN_ELSE_KEYWORD)
+	{
+		parser_advance(parser); // consume else
+
+		statement->if_.else_branch = parse_statement(parser);
+
+		if (statement->if_.else_branch->kind == STATEMENT_INVALID)
+			return &invalid_statement;
+	}
+
+	Token close_paren_token = parser->lexer->previous_token;
+
+	statement->source_span = extend_span_with_token(if_token.source_span, close_paren_token.source_span);
+
+	return statement;
+}
+
+Statement* parse_while_statement(Parser* parser)
+{
+	Token while_token = parser_get_token_and_advance(parser); // consume while
+
+	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
+	statement->kind      = STATEMENT_WHILE;
+
+	if (!parser_expect(parser, TOKEN_OPEN_PAREN))
+		return &invalid_statement;
+
+	parser_advance(parser); // consume (
+
+	statement->while_.condition = parse_expression(parser);
+
+	if (statement->while_.condition->kind == EXPRESSION_INVALID)
+		return &invalid_statement;
+
+	if (!parser_expect(parser, TOKEN_CLOSE_PAREN))
+		return &invalid_statement;
+
+	parser_advance(parser); // consume )
+
+	statement->while_.body = parse_statement(parser);
+
+	if (statement->while_.body->kind == STATEMENT_INVALID)
+		return &invalid_statement;
+
+	Token close_paren_token = parser->lexer->previous_token;
+
+	statement->source_span = extend_span_with_token(while_token.source_span, close_paren_token.source_span);
 
 	return statement;
 }
@@ -481,6 +886,12 @@ Statement* parse_statement(Parser* parser)
 
 	case TOKEN_RETURN_KEYWORD:
 		return parse_return_statement(parser);
+
+	case TOKEN_IF_KEYWORD:
+		return parse_if_statement(parser);
+
+	case TOKEN_WHILE_KEYWORD:
+		return parse_while_statement(parser);
 
 	case TOKEN_OPEN_BRACE:
 		return parse_compound_statement(parser);
@@ -507,14 +918,14 @@ Statement* parse_compound_statement(Parser* parser)
 	Token open_brace_token = parser_get_token_and_advance(parser); // consume {
 
 	Statement* statement = arena_allocator_allocate(&statement_allocator, sizeof(Statement));
-	statement->type      = STATEMENT_COMPOUND;
+	statement->kind      = STATEMENT_COMPOUND;
 
 	Statement** last_ptr = &statement->compound.first;
 
 	while (!try_advance(parser, TOKEN_CLOSE_BRACE)) // process till the end of }
 	{
 		Statement* inner = parse_statement(parser);
-		if (inner->type == STATEMENT_INVALID)
+		if (inner->kind == STATEMENT_INVALID)
 			return &invalid_statement;
 
 		*last_ptr = inner;
@@ -536,27 +947,43 @@ Declaration* parse_top_level_statement(Parser* parser)
 	switch (lexer->current_token.type)
 	{
 	case TOKEN_FUNCTION_KEYWORD:
-		new_declaration       = arena_allocator_allocate(&declaration_allocator, sizeof(Declaration));
-		new_declaration->kind = DECLARATION_FUNCTION;
+		new_declaration                 = arena_allocator_allocate(&declaration_allocator, sizeof(Declaration));
+		new_declaration->kind           = DECLARATION_FUNCTION;
+		new_declaration->resolve_status = RESOLVE_STATUS_UNRESOLVED;
 
 		if (!parse_function_signature(parser, &new_declaration->function.signature))
 			return &invalid_declaration;
 
-		Statement* body = parse_compound_statement(parser);
-		if (body->type == STATEMENT_INVALID)
-			return &invalid_declaration;
+		// function has the body
+		if (parser_get_token_type(parser) == TOKEN_OPEN_BRACE)
+		{
+			Statement* body = parse_compound_statement(parser);
+			if (body->kind == STATEMENT_INVALID)
+				return &invalid_declaration;
 
-		new_declaration->function.body = body;
-		new_declaration->source_span =
-		    extend_span_with_token(new_declaration->function.signature.source_span, body->source_span);
+			new_declaration->function.body = body;
+			new_declaration->source_span =
+			    extend_span_with_token(new_declaration->function.signature.source_span, body->source_span);
+		}
+		else
+		{
+			if (!parser_expect(parser, TOKEN_SEMICOLON))
+				return &invalid_declaration;
+
+			Token semicolon_token = parser_get_token_and_advance(parser); // consume ;
+
+			new_declaration->function.body = nullptr;
+			new_declaration->source_span =
+			    extend_span_with_token(new_declaration->function.signature.source_span, semicolon_token.source_span);
+		}
 
 		vector_push(parser->context->functions_declarations, new_declaration);
 
 		break;
 	default:
 		parser_report_error(&lexer->current_token.source_span,
-		                    UNEXPECTED_TOKEN_MESSAGE " A top-level statement was expected e.g. a " YELLOW_HIGHLIGHT(
-		                        "function") " or a " YELLOW_HIGHLIGHT("variable") " declaration!",
+		                    UNEXPECTED_TOKEN_MESSAGE " A top-level statement was expected e.g. a " YHRT(
+		                        "function") " or a " YHRT("variable") " declaration!",
 		                    lexer->current_token.lexeme);
 		break;
 	}

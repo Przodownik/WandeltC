@@ -1,11 +1,11 @@
-fn int32 main()
+fn int main()
 {
-    int32 a = 2500;
+    int a = 2500;
 
     return (a + a) * 4;
 }
 
-/*
+<*
 #expect
 ; ModuleID = 'module:core'
 source_filename = "main.wdt"
@@ -22,4 +22,4 @@ entry:
   %mul = mul i32 %add, 4
   ret i32 %mul
 }
-*/
+*>
